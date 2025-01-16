@@ -1,0 +1,83 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|h:\\projects\\csharp\\ludohive\\ludohive\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|solutionrelative:mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|h:\\projects\\csharp\\ludohive\\ludohive\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|solutionrelative:mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|h:\\projects\\csharp\\ludohive\\ludohive\\app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|solutionrelative:app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|h:\\projects\\csharp\\ludohive\\ludohive\\objectslh.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|solutionrelative:objectslh.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ObjectsLH.cs",
+              "DocumentMoniker": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\ObjectsLH.cs",
+              "RelativeDocumentMoniker": "ObjectsLH.cs",
+              "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\ObjectsLH.cs",
+              "RelativeToolTip": "ObjectsLH.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-01-14T00:45:28.041Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "App.xaml",
+              "DocumentMoniker": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\App.xaml",
+              "RelativeDocumentMoniker": "App.xaml",
+              "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\App.xaml",
+              "RelativeToolTip": "App.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2025-01-13T22:32:11.944Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MainWindow.xaml.cs",
+              "DocumentMoniker": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\MainWindow.xaml.cs",
+              "RelativeDocumentMoniker": "MainWindow.xaml.cs",
+              "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\MainWindow.xaml.cs",
+              "RelativeToolTip": "MainWindow.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADEAAABCAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-01-13T22:17:37.898Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MainWindow.xaml",
+              "DocumentMoniker": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\MainWindow.xaml",
+              "RelativeDocumentMoniker": "MainWindow.xaml",
+              "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\MainWindow.xaml",
+              "RelativeToolTip": "MainWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2025-01-13T22:17:40.613Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
