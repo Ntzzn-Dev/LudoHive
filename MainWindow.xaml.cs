@@ -14,6 +14,8 @@ using WpfAnimatedGif;
 using System.Windows.Interop;
 using SharpDX.DirectInput;
 using System.Windows.Media.Animation;
+using LudoHive.Telas.Controles;
+using LudoHive.Telas;
 
 namespace LudoHive;
     /// <summary>
@@ -40,14 +42,10 @@ public partial class MainWindow : Window
     private static DateTime horario;
     private SynchronizationContext _syncContext;
     // Controle =======================
-    private DirectInput _directInput;
-    private Joystick _joystick;
-    private System.Timers.Timer timerControle;
+    private Controle controle;
     private IntPtr _notificationHandle;
     private float appAtual = 0, appCount = 0;
     private List<int> idsApps = new List<int>();
-    private Dictionary<string, DateTime> _cooldowns = new Dictionary<string, DateTime>();
-    private TimeSpan _cooldownTime = TimeSpan.FromMilliseconds(300);
     // Hotkeys e DLL ==================
     private static readonly Guid GUID_DEVINTERFACE_HID = new Guid("4D1E55B2-F16F-11CF-88CB-001111000030"); // HID class GUID
     [DllImport("user32.dll")]
@@ -74,7 +72,6 @@ public partial class MainWindow : Window
 
     private const int WM_DEVICECHANGE = 0x0219;
     private const int DBT_DEVICEARRIVAL = 0x8000;
-    private const int DBT_DEVICEREMOVECOMPLETE = 0x8004;
     private const int DBT_DEVTYP_DEVICEINTERFACE = 5;
     private const int DEVICE_NOTIFY_WINDOW_HANDLE = 0x00000000;
     public MainWindow()
@@ -85,8 +82,8 @@ public partial class MainWindow : Window
 
         AtalhoPegarIds();
 
-        BitmapImage vinhetaImage = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Vinheta.png")));
-        PicImgVinheta.Source = vinhetaImage;
+        PicImgVinheta.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Vinheta.png")));
+        picImgAppsOcultos.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "PicAppsShow.png")));
 
         DefinirGatilhos();
 
@@ -230,17 +227,34 @@ public partial class MainWindow : Window
         {
             int wParamInt = wParam.ToInt32();
             if (wParamInt == DBT_DEVICEARRIVAL)
-            {
-                DetectJoystick(lParam);
-            }
-            else if (wParamInt == DBT_DEVICEREMOVECOMPLETE)
-            {
-                PicControlON.Source = null;
-                timerControle.Stop();
+            {                
+                controle = new Controle(lParam);
+                DefinirComandos();
             }
         }
 
         return IntPtr.Zero;
+    }
+    private void InicializarControle()
+    {
+        DirectInput _directInput = new DirectInput();
+        var joystickGuid = Guid.Empty;
+
+        foreach (var deviceInstance in _directInput.GetDevices(DeviceType.Gamepad, DeviceEnumerationFlags.AttachedOnly))
+        {
+            joystickGuid = deviceInstance.InstanceGuid;
+        }
+
+        if (joystickGuid == Guid.Empty)
+        {
+            return;
+        }
+
+        Joystick _joystick = new Joystick(_directInput, joystickGuid);
+        _joystick.Acquire();
+
+        controle = new Controle(_joystick);
+        DefinirComandos();
     }
 
     // Substituir acao das teclas //
@@ -259,17 +273,15 @@ public partial class MainWindow : Window
             }
             else if (e.Key == System.Windows.Input.Key.Up)
             {
-                /*appsOcultos = false;
-                pnlAppTransition.Start();
-                heightPnlApps = pnlApps.Size.Height;
-                e.Handled = true;  */
+                appsOcultos = false;
+                ToggleApps();
+                e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.Down)
             {
-                /*appsOcultos = true;
-                pnlAppTransition.Start();
-                heightPnlApps = pnlApps.Size.Height;
-                e.Handled = true; */
+                appsOcultos = true;
+                ToggleApps();
+                e.Handled = true; 
             }
             else if (e.Key == System.Windows.Input.Key.Space)
             {
@@ -284,42 +296,228 @@ public partial class MainWindow : Window
 
         btnAbrir.Click += BtnAbrirAtalho;
         btnFechar.Click += (s, e) => this.Close();
-        //btnEditarAtalho.Click += BtnEditarAtalho;
-        /*btnAdicionar.Click += (s, e) => Cadastrar();*/
+        btnEditarAtalho.Click += BtnEditarAtalho;
+        btnAdicionarAtalho.Click += (s, e) => Cadastrar();
         btnDeletarAtalho.Click += BtnDeletarAtalho;
 
         btnNextAtalho.Click += (s, e) => GameNext();
         btnPrevAtalho.Click += (s, e) => GamePrev();
-    
-        /*picPuxarApps.Click += BtnAlternarAppsOcultos;
 
-        pnlAppTransition.Tick += TransicaoAppsOcultos;*/
+        gdPnlApps.MouseDown += (s, e) => ToggleApps();
+    }
+    private void PegarApps()
+    {
+        gdApps.Children.Clear();
+        ArrayList idsApps = Aplicativos.ConsultarIDs();
+        List<Aplicativos> appsContext = new List<Aplicativos>();
+
+        foreach (int id in idsApps)
+        {
+            Aplicativos appAtual = new Aplicativos(id);
+            appsContext.Add(appAtual);
+        }
+
+        PnlPnlAddApp(appsContext);
+    }
+    private void PnlPnlAddApp(List<Aplicativos> appsContext)
+    {
+        idsApps.Clear();
+        for (int i = 0; i < appsContext.Count; i++)
+        {
+            gdApps.Children.Add(CriacaoApp(appsContext[i], OrganizacaoApps(appsContext.Count, i + 1)));
+            idsApps.Add(appsContext[i].getIdAplicativo());
+        }
+        appCount = appsContext.Count;
+        appsContext.Clear();
+    }
+    private Point OrganizacaoApps(int quantidadeDeApps, int posicaoDoApp)
+    {
+        int tamanhoApp = 75;
+        int margemApps = 48;
+        int meiaTela = (int)gdApps.ActualWidth / 2;
+        int posicao = meiaTela - tamanhoApp / 2;
+
+        if (quantidadeDeApps % 2 == 0)
+        {
+            posicao += 62; //Centraliza para quantidades pares
+        }
+
+        int metadeDosApps = quantidadeDeApps / 2 + 1;
+
+        //posicao diminui o tamanho do panel * posicao em relacao a metade - margem de distancia entre os apps
+        posicao += -tamanhoApp * (metadeDosApps - posicaoDoApp) - margemApps * (metadeDosApps - posicaoDoApp);
+
+        return new Point(posicao, 12);
+    }
+    private Panel CriacaoApp(Aplicativos appEmUso, Point localDoAplicativo)
+    {
+        Image picAppIcon = new Image
+        {
+            Source = appEmUso.getIconeAplicativo(),
+            Location = new Point(0, 0),
+            BackColor = Color.Transparent,
+            Margin = new Padding(0),
+            Name = "picIconApp_" + appEmUso.getNomeAplicativo() + ">" + appEmUso.getIdAplicativo(),
+            Size = new Size(75, 75),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            Clip = new RectangleGeometry(new Rect(0, 0, 200, 200), 20, 20)
+        };
+        //
+        Label lblAppNome = new Label
+        {
+            Font = new Font("Arial", 9F, FontStyle.Bold, GraphicsUnit.Point, 0),
+            Anchor = AnchorStyles.Top,
+            BackColor = Color.Transparent,
+            Location = new Point(0, 75),
+            Margin = new Padding(0),
+            Name = "lblNomeApp_" + appEmUso.getNomeAplicativo() + ">" + appEmUso.getIdAplicativo(),
+            Size = new Size(75, 48),
+            TabIndex = 22,
+            Text = appEmUso.getNomeAplicativo(),
+            TextAlign = ContentAlignment.MiddleCenter
+        };
+        //
+        Panel pnlBackground = new Panel
+        {
+            Location = localDoAplicativo,
+            Margin = new Padding(0),
+            Name = "pnl_" + appEmUso.getNomeAplicativo() + ">" + appEmUso.getIdAplicativo(),
+            Size = new Size(75, 123),
+            TabIndex = 21
+        };
+        pnlBackground.Controls.Add(picAppIcon);
+        pnlBackground.Controls.Add(lblAppNome);
+
+        Color cor = Color.FromArgb(67, 0, 0, 0);
+
+        pnlBackground.MouseEnter += (s, e) => pnlBackground.BackColor = cor;
+        lblAppNome.MouseEnter += (s, e) => pnlBackground.BackColor = cor;
+        picAppIcon.MouseEnter += (s, e) => pnlBackground.BackColor = cor;
+        pnlBackground.MouseLeave += (s, e) => pnlBackground.BackColor = Color.Transparent;
+        lblAppNome.MouseLeave += (s, e) => pnlBackground.BackColor = Color.Transparent;
+        picAppIcon.MouseLeave += (s, e) => pnlBackground.BackColor = Color.Transparent;
+
+        picAppIcon.MouseClick += (s, e) =>
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                CriarPopup(appEmUso.getIdAplicativo());
+            }
+            if (e.Button == MouseButtons.Left)
+            {
+                BtnAbrirAplicativos(s, e);
+            }
+        };
+        lblAppNome.MouseClick += (s, e) =>
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                CriarPopup(appEmUso.getIdAplicativo());
+            }
+            if (e.Button == MouseButtons.Left)
+            {
+                BtnAbrirAplicativos(s, e);
+            }
+        };
+
+        return pnlBackground;
+    }
+    private void ToggleApps()
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (appsOcultos == false)
+            {
+                ThicknessAnimation animation = new ThicknessAnimation
+                {
+                    From = new Thickness(6, gdPnlApps.Margin.Top, 0, 0),
+                    To = new Thickness(0, -215, 0, 0),
+                    Duration = TimeSpan.FromSeconds(0.2),
+                    EasingFunction = new QuadraticEase()
+                };
+
+                animation.Completed += (s, e) =>
+                {
+                    picImgAppsOcultos.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "PicAppsShow.png")));
+                    appsOcultos = true;
+                };
+
+                gdPnlApps.BeginAnimation(FrameworkElement.MarginProperty, animation);
+            }
+            else
+            {
+                ThicknessAnimation animation = new ThicknessAnimation
+                {
+                    From = new Thickness(6, gdPnlApps.Margin.Top, 0, 0),
+                    To = new Thickness(0, 0, 0, 0),
+                    Duration = TimeSpan.FromSeconds(0.2),
+                    EasingFunction = new QuadraticEase()
+                };
+
+                animation.Completed += (s, e) =>
+                {
+                    picImgAppsOcultos.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "PicAppsHide.png")));
+                    appsOcultos = false;
+                };
+
+                gdPnlApps.BeginAnimation(FrameworkElement.MarginProperty, animation);
+            }
+        });
+    }
+    private void Cadastrar()
+    {
+        Cadastrar cad = new Cadastrar()
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        cad.atalhoCadastrado += (s, e) => AtalhoPegarIds();
+
+        mainGrid.Children.Add(cad);
+        Panel.SetZIndex(cad, 10);
+    }
+    private void BtnEditarAtalho(object sender, EventArgs e)
+    {
+        Cadastrar cadEdicao = new Cadastrar(idAtual, 0)
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        cadEdicao.atalhoCadastrado += (s, e) => AtalhoPegarIds();
+
+        mainGrid.Children.Add(cadEdicao);
+        Panel.SetZIndex(cadEdicao, 10);
     }
     private void BtnAbrirAtalho(object sender, EventArgs e)
     {
         try
         {
-            abrindoOJogo = true;
-            string caminho = atalhoAtual.getCaminhoAtalho();
-            string permissao = "runas";
-            string argumentacao = atalhoAtual.getParametroAtalho();
-            string diretorioTrabalho = System.IO.Path.GetDirectoryName(caminho);
-            if (caminho.Contains("steam:"))
+            this.Dispatcher.Invoke(new Action(() =>
             {
-                permissao = "";
-            }
-            if (caminho.Contains("epicgames"))
-            {
-                argumentacao = caminho;
-                caminho = GetEpicGames();
-                diretorioTrabalho = System.IO.Path.GetDirectoryName(caminho);
-                AbrirEpicGames(caminho, diretorioTrabalho, argumentacao, permissao);
-            }
-            else
-            {
-                AbrirAtalho(caminho, diretorioTrabalho, argumentacao, permissao);
-            }
-            PicGIFAbrindoJogo();
+                abrindoOJogo = true;
+                string caminho = atalhoAtual.getCaminhoAtalho();
+                string permissao = "runas";
+                string argumentacao = atalhoAtual.getParametroAtalho();
+                string diretorioTrabalho = System.IO.Path.GetDirectoryName(caminho);
+                if (caminho.Contains("steam:"))
+                {
+                    permissao = "";
+                }
+                if (caminho.Contains("epicgames"))
+                {
+                    argumentacao = caminho;
+                    caminho = GetEpicGames();
+                    diretorioTrabalho = System.IO.Path.GetDirectoryName(caminho);
+                    AbrirEpicGames(caminho, diretorioTrabalho, argumentacao, permissao);
+                }
+                else
+                {
+                    AbrirAtalho(caminho, diretorioTrabalho, argumentacao, permissao);
+                }
+                PicGIFAbrindoJogo();
+            }));
         }
         catch (Exception ex)
         {
@@ -358,7 +556,18 @@ public partial class MainWindow : Window
                         jogoAberto.Exited -= AoFecharAtalho;
                     }
                     jogoAberto = processo;
-                    jogoAberto.EnableRaisingEvents = true;
+
+                    if (!jogoAberto.HasExited)
+                    {
+                        try
+                        {
+                            jogoAberto.EnableRaisingEvents = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Erro ao definir EnableRaisingEvents: {ex.Message}");
+                        }
+                    }
                     jogoAberto.Exited += AoFecharAtalho;
 
                     PicGIFRemover();
@@ -447,27 +656,31 @@ public partial class MainWindow : Window
     {
         this.Dispatcher.Invoke(() => {
             this.Hide();
+
+            if (timerProcessoEstabilizar != null)
+            {
+                timerProcessoEstabilizar.Enabled = false;
+                abrindoOJogo = false;
+            }
+            
+            PararPrograma();
+
+            btnAbrir.Content = "Voltar ao jogo";
+            btnAbrir.Click -= BtnAbrirAtalho;
+            btnAbrir.Click += BtnMandarPraBandeja;
         });
         /*CriarNotificacao();
         notifyIcon.ShowBalloonTip(1000, "Aplicativo Minimizado", "Clique para restaurar", ToolTipIcon.Info);*/
-        timerProcessoEstabilizar.Enabled = false;
-        abrindoOJogo = false;
-
-        PararPrograma();
-
-        btnAbrir.Content = "Voltar ao jogo";
-        btnAbrir.Click -= BtnAbrirAtalho;
-        btnAbrir.Click += BtnMandarPraBandeja;
     }
     private void PararPrograma()
     {
-        timerControle.Stop();
+        controle?.timerControle.Stop();
         PicControlON.Source = null;
         jogoEmUso = true;
     }
     private void VoltarPrograma()
     {
-        timerControle.Start();
+        controle?.timerControle.Start();
         PicControlON.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "ControlON.png")));
         jogoEmUso = false;
     }
@@ -480,7 +693,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            string[] processosIgnorados = { "dev", "chrome", "firefox", "opera", "spotify", "edge", "steam", "textinput", "code", "xbox", "dwm", "taskmgr", "protected", "ludoh", "discord", "settings", "explorer", "svchost", "dllhost", "taskhost", "service", "application", "explorer" };
+            string[] processosIgnorados = { "dev", "notepad", "chrome", "firefox", "opera", "spotify", "edge", "steam", "textinput", "code", "xbox", "dwm", "taskmgr", "protected", "ludoh", "discord", "settings", "explorer", "svchost", "dllhost", "taskhost", "service", "application", "explorer" };
 
             if (processosIgnorados.Any(nome => processo.ProcessName.ToLower().Contains(nome)))
                 return true;
@@ -559,7 +772,10 @@ public partial class MainWindow : Window
 
             string inicioSessao = DateTime.Now.ToString("dd/MM/yy - HH:mm");
             Atalhos.SessaoIniciada(inicioSessao, idAtual);
-            lblDataSessao.Content = "Data: " + inicioSessao;
+            this.Dispatcher.Invoke(new Action(() =>
+            {
+                lblDataSessao.Content = "Data: " + inicioSessao;
+            }));
 
             MonitoramentoDeProcesos();
         }
@@ -581,7 +797,14 @@ public partial class MainWindow : Window
         }
         InicializarControle();
         RegisterForDeviceNotifications();
-        IniciarTimerMonitoramentoControle();
+
+        var rectGeometry = new RectangleGeometry
+        {
+            Rect = new Rect(0, -30, mainGrid.ActualWidth, 245),
+            RadiusX = 20,
+            RadiusY = 20
+        };
+        recPnlApp.Clip = rectGeometry;
 
         var source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
         source.AddHook(WndProc);
@@ -593,29 +816,8 @@ public partial class MainWindow : Window
     private void PicTransitionsCriar()
     {
         int tamanhopic = (int)PicImgAtalhoAtual.ActualWidth;
-        Image imgL = new Image()
-        {
-            Width = PicImgAtalhoAtual.Width,
-            Height = PicImgAtalhoAtual.Height,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(tamanhopic, 0, -tamanhopic, 0),
-            Name = "picImgLeft"
-        };
-        Image imgR = new Image()
-        {
-            Width = PicImgAtalhoAtual.Width,
-            Height = PicImgAtalhoAtual.Height,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(-tamanhopic, 0, tamanhopic, 0),
-            Name = "picImgRight"
-        };
-
-        mainGrid.Children.Add(imgL);
-        mainGrid.Children.Add(imgR);
-        Panel.SetZIndex(imgL, 0);
-        Panel.SetZIndex(imgR, 0);
+        PicImgAtalhoProx.Margin = new Thickness(-tamanhopic, 0, tamanhopic, 0);
+        PicImgAtalhoPrev.Margin = new Thickness(tamanhopic, 0, -tamanhopic, 0);
     }
     private void TransicaoImageAtalho(bool dir)
     {
@@ -623,18 +825,18 @@ public partial class MainWindow : Window
         {
             Image img = null;
             int num = 1;
-            if (dir) { img = mainGrid.Children.OfType<Image>().FirstOrDefault(img => img.Name == "picImgRight"); num = num * -1; }
-            if (dir == false) { img = mainGrid.Children.OfType<Image>().FirstOrDefault(img => img.Name == "picImgLeft"); }
+            if (dir) { img = PicImgAtalhoProx; num = num * -1; }
+            if (dir == false) { img = PicImgAtalhoPrev; }
 
             Atalhos atalhoAtualL = atalhosProximos.Find(atalho => atalho.getIdAtalho() == idAtual + num);
             if (atalhoAtualL != null) { img.Source = atalhoAtualL.getImgAtalho(); }
 
             ThicknessAnimation animation = new ThicknessAnimation
             {
-                From = new Thickness(img.Margin.Left, 0, img.Margin.Right, 0), // Margem inicial
-                To = new Thickness(0, 0, 0, 0),         // Margem final
-                Duration = TimeSpan.FromSeconds(0.2),     // Duração da animação
-                EasingFunction = new QuadraticEase()    // Adiciona um efeito de suavização
+                From = new Thickness(img.Margin.Left, 0, img.Margin.Right, 0),
+                To = new Thickness(0, 0, 0, 0),
+                Duration = TimeSpan.FromSeconds(0.2),
+                EasingFunction = new QuadraticEase()
             };
 
             animation.Completed += (s, e) => RecarregarTransicaoImageAtalho(img, num);
@@ -647,7 +849,7 @@ public partial class MainWindow : Window
         img.BeginAnimation(FrameworkElement.MarginProperty, null);
 
         int tamanhopic = (int)PicImgAtalhoAtual.ActualWidth;
-        if (img.Name.Equals("picImgRight")) { tamanhopic = tamanhopic * -1; }
+        if (img == PicImgAtalhoProx) { tamanhopic = tamanhopic * -1; }
 
         PicImgAtalhoAtual.Source = atalhoAtual.getImgAtalho();
 
@@ -675,11 +877,13 @@ public partial class MainWindow : Window
         int indiceAtual = ids.IndexOf(idAtual);
         if (indiceAtual < ids.Count - 1)
         {
-            trocandoImage = true;
-            TransicaoImageAtalho(false);
-            idAtual = (int)ids[indiceAtual + 1];
-            AtalhoListar(idAtual);
-            return true;
+            this.Dispatcher.Invoke(() => {
+                trocandoImage = true;
+                TransicaoImageAtalho(false);
+                idAtual = (int)ids[indiceAtual + 1];
+                AtalhoListar(idAtual);
+                return true;
+            });
         }
 
         return false;
@@ -691,11 +895,13 @@ public partial class MainWindow : Window
         int indiceAtual = ids.IndexOf(idAtual);
         if (indiceAtual > 0)
         {
-            trocandoImage = true;
-            TransicaoImageAtalho(true);
-            idAtual = (int)ids[indiceAtual - 1];
-            AtalhoListar(idAtual);
-            return true;
+            this.Dispatcher.Invoke(() => {
+                trocandoImage = true;
+                TransicaoImageAtalho(true);
+                idAtual = (int)ids[indiceAtual - 1];
+                AtalhoListar(idAtual);
+                return true;
+            });
         }
         return false;
     }
@@ -734,9 +940,6 @@ public partial class MainWindow : Window
             lblTempoSessao.Content = "Durou: " + atalhoAtual.getTempoSessaoAtalho();
 
             PicDefinirCorDeFundo(atalhoAtual.getImgAtalho());
-
-            var clip = new RectangleGeometry(new Rect(0, 0, 200, 200), 20, 20);
-            picIconAtalho.Clip = clip;
 
             picIconAtalho.Source = atalhoAtual.getIconeAtalho();
         });
@@ -849,124 +1052,16 @@ public partial class MainWindow : Window
         }
     }
     // Controles ----------------------------------------------------------------------------------
-    private void IniciarTimerMonitoramentoControle()
+    private void DefinirComandos()
     {
-        timerControle = new System.Timers.Timer { Interval = 16 };
-        timerControle.Elapsed += ControleInputs;
-        timerControle.Start();
-
-        PicControlON.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "ControlON.png")));
-    }
-    private void InicializarControle()
-    {
-        _directInput = new DirectInput();
-        var joystickGuid = Guid.Empty;
-
-        foreach (var deviceInstance in _directInput.GetDevices(DeviceType.Gamepad, DeviceEnumerationFlags.AttachedOnly))
-        {
-            joystickGuid = deviceInstance.InstanceGuid;
-        }
-
-        if (joystickGuid == Guid.Empty)
-        {
-            return;
-        }
-
-        _joystick = new Joystick(_directInput, joystickGuid);
-        _joystick.Acquire();
-    }
-    private void DetectJoystick(IntPtr lParam)
-    {
-        var hdr = Marshal.PtrToStructure<DEV_BROADCAST_HDR>(lParam);
-
-        if (hdr.dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE)
-        {
-            var deviceInterface = Marshal.PtrToStructure<DEV_BROADCAST_DEVICEINTERFACE>(lParam);
-            if (deviceInterface.dbcc_classguid == GUID_DEVINTERFACE_HID)
-            {
-                foreach (var deviceInstance in _directInput.GetDevices(DeviceType.Gamepad, DeviceEnumerationFlags.AttachedOnly))
-                {
-                    var joystickGuid = deviceInstance.InstanceGuid;
-
-                    if (joystickGuid != Guid.Empty)
-                    {
-                        _joystick = new Joystick(_directInput, joystickGuid);
-                        _joystick.Acquire();
-
-                        IniciarTimerMonitoramentoControle();
-                    }
-                }
-            }
-        }
-    }
-    private void ControleInputs(object sender, EventArgs e)
-    {
-        try
-        {
-            if (_joystick == null) {
-                try
-                {
-                    this.Dispatcher.Invoke(() =>
-                    {
-                        PicControlON.Source = null;
-                    });
-                }
-                catch (TaskCanceledException)
-                {
-                    Console.WriteLine("A operação foi cancelada.");
-                }
-                return;
-            }
-
-            _joystick.Poll();
-            var state = _joystick.GetCurrentState();
-
-            if (state == null) return;
-
-            // Obter valores dos botoes
-            var buttons = state.Buttons;
-
-            // Obter valores das setas
-            var dPad = state.PointOfViewControllers[0];
-
-            // Obter valores dos analógicos
-            var xAnalog = state.X;
-            var yAnalog = state.Y;
-            var zAnalog = state.Z;
-            var rzAnalog = state.RotationZ;
-
-            // Normalizar valores (-1.0 a 1.0)
-            float leftX = (xAnalog - 32767f) / 32767f;
-            float leftY = (yAnalog - 32767f) / 32767f;
-            float rightX = (zAnalog - 32767f) / 32767f;
-            float rightY = (rzAnalog - 32767f) / 32767f;
-
-            // Executar métodos dependendo dos valores
-            if ((leftX > 0.5 || dPad == 9000) && CanExecute("MoveRight")) MoveRight();
-            else if ((leftX < -0.5 || dPad == 27000) && CanExecute("MoveLeft")) MoveLeft();
-
-            if ((leftY > 0.5 || dPad == 18000) && CanExecute("MoveUp")) MoveUp();
-            else if ((leftY < -0.5 || dPad == 0) && CanExecute("MoveDown")) MoveDown();
-
-            if (buttons.Length > 1 && buttons[1] && CanExecute("BtnX")) BtnX();
-            if (buttons.Length > 1 && buttons[2] && CanExecute("BtnO")) BtnO();
-        }
-        catch (SharpDX.SharpDXException)
-        {
-            timerControle.Stop();
-            this.Dispatcher.Invoke(() => {
-                PicControlON.Source = null;
-            });
-        }
-    }
-    private bool CanExecute(string actionName)
-    {
-        if (!_cooldowns.ContainsKey(actionName) || DateTime.Now - _cooldowns[actionName] >= _cooldownTime)
-        {
-            _cooldowns[actionName] = DateTime.Now;
-            return true;
-        }
-        return false;
+        this.Dispatcher.Invoke(() => { PicControlON.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "ControlON.png"))); });
+        controle.controlDisconnect += (s, e) => this.Dispatcher.Invoke(() => { PicControlON.Source = null; });
+        controle.btnX += (s, e) => BtnX();
+        controle.btnQ += (s, e) => BtnO();
+        controle.moveLeft += (s, e) => MoveLeft();
+        controle.moveRight += (s, e) => MoveRight();
+        controle.moveDown += (s, e) => MoveDown();
+        controle.moveUp += (s, e) => MoveUp();
     }
     private void MoveRight() { if (appsOcultos) { GameNext(); } else { appAtual += 0.2f; if (appAtual >= appCount) { appAtual = appCount - 1; } /*VisualizarEscolhaViaControle();*/ } }
     private void MoveLeft() { if (appsOcultos) { GamePrev(); } else { appAtual -= 0.2f; if (appAtual <= 0) { appAtual = 0; } /*VisualizarEscolhaViaControle();*/ } }
@@ -974,31 +1069,4 @@ public partial class MainWindow : Window
     private void MoveDown() { appsOcultos = false; /*pnlAppTransition.Start(); heightPnlApps = pnlApps.Size.Height;*/ }
     private void BtnX() { if (appsOcultos) { if (abrindoOJogo == false) { BtnAbrirAtalho(null, null); } } else { /*BtnAbrirAplicativos(null, null);*/ } }
     private void BtnO() { this.Dispatcher.Invoke(() => { this.Close(); }); }
-}
-public class RelayCommand : ICommand
-{
-    private readonly Action _execute;
-    private readonly Func<bool> _canExecute;
-
-    public RelayCommand(Action execute, Func<bool> canExecute = null)
-    {
-        _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-        _canExecute = canExecute;
-    }
-
-    public event EventHandler CanExecuteChanged
-    {
-        add => CommandManager.RequerySuggested += value;
-        remove => CommandManager.RequerySuggested -= value;
-    }
-
-    public bool CanExecute(object parameter)
-    {
-        return _canExecute?.Invoke() ?? true;
-    }
-
-    public void Execute(object parameter)
-    {
-        _execute();
-    }
 }

@@ -58,6 +58,10 @@
               "target": "Package",
               "version": "[4.2.0, )"
             },
+            "SkiaSharp": {
+              "target": "Package",
+              "version": "[3.116.1, )"
+            },
             "WpfAnimatedGif": {
               "target": "Package",
               "version": "[2.0.2, )"

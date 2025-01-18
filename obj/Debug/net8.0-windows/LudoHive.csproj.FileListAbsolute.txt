@@ -52,3 +52,17 @@ H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\SharpDX.DirectInpu
 H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\Assets\ControlON.png
 H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\Assets\Carregando.gif
 H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\Assets\Vinheta.png
+H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\LudoHive.sourcelink.json
+H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Cadastrar.g.cs
+H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\TextboxCustom.g.cs
+H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Cadastrar.baml
+H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\TextboxCustom.baml
+H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\GeneratedInternalTypeHelper.g.cs
+H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\SkiaSharp.dll
+H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\runtimes\osx\native\libSkiaSharp.dylib
+H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\runtimes\win-arm64\native\libSkiaSharp.dll
+H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\runtimes\win-x64\native\libSkiaSharp.dll
+H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\runtimes\win-x86\native\libSkiaSharp.dll
+H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\Assets\Morgan.jpg
+H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\Assets\PicAppsHide.png
+H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\Assets\PicAppsShow.png

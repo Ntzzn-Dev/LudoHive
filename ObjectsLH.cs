@@ -1,8 +1,12 @@
 ﻿using Microsoft.Data.Sqlite;
+using SharpDX.DirectInput;
 using System.Collections;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 
 namespace LudoHive
@@ -648,6 +652,7 @@ namespace LudoHive
     public class Referencias
     {
         public static string connectionString = $"Data Source={Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "applicationsShortcuts.db")}";
+        public static string imgPrincipal = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Morgan.jpg");
         public Referencias()
         {
 
@@ -690,6 +695,176 @@ namespace LudoHive
             int minutos = tempo.Minutes;
 
             return $"{horas}h{minutos:D2}m";
+        }
+    }
+    public class RelayCommand : ICommand
+    {
+        private readonly Action _execute;
+        private readonly Func<bool> _canExecute;
+
+        public RelayCommand(Action execute, Func<bool> canExecute = null)
+        {
+            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            _canExecute = canExecute;
+        }
+
+        public event EventHandler CanExecuteChanged
+        {
+            add => CommandManager.RequerySuggested += value;
+            remove => CommandManager.RequerySuggested -= value;
+        }
+
+        public bool CanExecute(object parameter)
+        {
+            return _canExecute?.Invoke() ?? true;
+        }
+
+        public void Execute(object parameter)
+        {
+            _execute();
+        }
+    }
+    public class Controle{
+        private DirectInput _directInput;
+        private Joystick _joystick;
+        public System.Timers.Timer timerControle;
+        private IntPtr _notificationHandle;
+        private bool jogoEmUso = false;
+
+        private Dictionary<string, DateTime> _cooldowns = new Dictionary<string, DateTime>();
+        private TimeSpan _cooldownTime = TimeSpan.FromMilliseconds(300);
+
+        public event EventHandler btnQ, btnB, btnX, btnT;
+        public event EventHandler moveRight, moveLeft, moveUp, moveDown;
+        public event EventHandler controlDisconnect;
+
+        private static readonly Guid GUID_DEVINTERFACE_HID = new Guid("4D1E55B2-F16F-11CF-88CB-001111000030"); // HID class GUID
+
+        private const int WM_DEVICECHANGE = 0x0219;
+        private const int DBT_DEVICEARRIVAL = 0x8000;
+        private const int DBT_DEVICEREMOVECOMPLETE = 0x8004;
+        private const int DBT_DEVTYP_DEVICEINTERFACE = 5;
+        private const int DEVICE_NOTIFY_WINDOW_HANDLE = 0x00000000;
+
+        public Controle(Joystick joy)
+        {
+            _joystick = joy;
+            IniciarTimerMonitoramentoControle();
+        }
+        public Controle(IntPtr lParam)
+        {
+            DetectJoystick(lParam);
+            IniciarTimerMonitoramentoControle();
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct DEV_BROADCAST_HDR
+        {
+            public int dbch_size;
+            public int dbch_devicetype;
+            public int dbch_reserved;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct DEV_BROADCAST_DEVICEINTERFACE
+        {
+            public int dbcc_size;
+            public int dbcc_devicetype;
+            public int dbcc_reserved;
+            public Guid dbcc_classguid;
+            public short dbcc_name;
+        }
+        private void DetectJoystick(IntPtr lParam)
+        {
+            var hdr = Marshal.PtrToStructure<DEV_BROADCAST_HDR>(lParam);
+
+            if (hdr.dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE)
+            {
+                var deviceInterface = Marshal.PtrToStructure<DEV_BROADCAST_DEVICEINTERFACE>(lParam);
+                if (deviceInterface.dbcc_classguid == GUID_DEVINTERFACE_HID)
+                {
+                    _directInput = new DirectInput();
+                    foreach (var deviceInstance in _directInput.GetDevices(DeviceType.Gamepad, DeviceEnumerationFlags.AttachedOnly))
+                    {
+                        var joystickGuid = deviceInstance.InstanceGuid;
+
+                        if (joystickGuid != Guid.Empty)
+                        {
+                            Joystick _joystick = new Joystick(_directInput, joystickGuid);
+                            _joystick.Acquire();
+
+                            this._joystick = _joystick;
+                        }
+                    }
+                }
+            }
+        }
+        private void IniciarTimerMonitoramentoControle()
+        {
+            timerControle = new System.Timers.Timer { Interval = 16 };
+            timerControle.Elapsed += ControleInputs;
+            timerControle.Start();
+        }
+        private void ControleInputs(object sender, EventArgs e)
+        {
+            try
+            {
+                if (_joystick == null || jogoEmUso)
+                {
+                    timerControle.Stop();
+                    controlDisconnect?.Invoke(this, e);
+                    return;
+                }
+
+                _joystick.Poll();
+                var state = _joystick.GetCurrentState();
+
+                if (state == null) return;
+
+                // Obter valores dos botoes
+                var buttons = state.Buttons;
+
+                // Obter valores das setas
+                var dPad = state.PointOfViewControllers[0];
+
+                // Obter valores dos analógicos
+                var xAnalog = state.X;
+                var yAnalog = state.Y;
+                var zAnalog = state.Z;
+                var rzAnalog = state.RotationZ;
+
+                // Normalizar valores (-1.0 a 1.0)
+                float leftX = (xAnalog - 32767f) / 32767f;
+                float leftY = (yAnalog - 32767f) / 32767f;
+                float rightX = (zAnalog - 32767f) / 32767f;
+                float rightY = (rzAnalog - 32767f) / 32767f;
+
+                // Executar métodos dependendo dos valores
+                if ((leftX > 0.5 || dPad == 9000) && CanExecute("MoveRight")) moveRight?.Invoke(this, e);
+                else if ((leftX < -0.5 || dPad == 27000) && CanExecute("MoveLeft")) moveLeft?.Invoke(this, e);
+
+                if ((leftY > 0.5 || dPad == 18000) && CanExecute("MoveUp")) moveUp?.Invoke(this, e);
+                else if ((leftY < -0.5 || dPad == 0) && CanExecute("MoveDown")) moveDown?.Invoke(this, e);
+
+                if (buttons.Length > 1 && buttons[0] && CanExecute("BtnQ")) btnQ?.Invoke(this, e);
+                if (buttons.Length > 1 && buttons[1] && CanExecute("BtnX")) btnX?.Invoke(this, e);
+                if (buttons.Length > 1 && buttons[2] && CanExecute("BtnB")) btnB?.Invoke(this, e);
+                if (buttons.Length > 1 && buttons[3] && CanExecute("BtnT")) btnT?.Invoke(this, e);
+            }
+            catch (SharpDX.SharpDXException)
+            {
+                timerControle.Stop();
+                controlDisconnect?.Invoke(this, e);
+            }
+        }
+        private bool CanExecute(string actionName)
+        {
+            if (!_cooldowns.ContainsKey(actionName) || DateTime.Now - _cooldowns[actionName] >= _cooldownTime)
+            {
+                _cooldowns[actionName] = DateTime.Now;
+                return true;
+            }
+            return false;
         }
     }
 }

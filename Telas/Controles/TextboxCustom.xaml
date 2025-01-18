@@ -1,0 +1,17 @@
+﻿<UserControl x:Class="LudoHive.Telas.Controles.TextboxCustom"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:LudoHive.Telas.Controles"
+             mc:Ignorable="d" 
+             d:DesignHeight="40.167" d:DesignWidth="340">
+    <Grid>
+        <Rectangle x:Name="txtbxBackground" Stroke="#FF7D7D7D" Fill="#FF7D7D7D" Margin="0,8,0,0"/>
+
+        <TextBox x:Name="txtbxTexto" Margin="8,19,7,3" TextWrapping="Wrap" Background="#FF7D7D7D" BorderBrush="#FF7D7D7D" TextChanged="textBox1_TextChanged" MouseDown="label1_Click" KeyDown="TextBox1_KeyDown" GotFocus="textBox1_EnterOrLeave" LostFocus="textBox1_EnterOrLeave" SelectionBrush="#FF7D7D7D"/>
+        <PasswordBox x:Name="pwdBox"  Margin="8,19,7,3" Background="#FF7D7D7D" BorderBrush="#FF7D7D7D" MouseDown="label1_Click" KeyDown="TextBox1_KeyDown" GotFocus="textBox1_EnterOrLeave" LostFocus="textBox1_EnterOrLeave" SelectionBrush="#FF7D7D7D" Visibility="Hidden"/>
+        <Label x:Name="lblPlaceholder" Content="Placeholder" Margin="6,14,0,0" VerticalAlignment="Top" Foreground="#FFBDBDBD" HorizontalAlignment="Left" FontWeight="Bold" Background="Transparent"/>
+        
+    </Grid>
+</UserControl>
