@@ -21,11 +21,11 @@ namespace LudoHive.Telas
         private int idDeAlteracao;
         private int imgCarregada;
         public event EventHandler atalhoCadastrado;
+        public event EventHandler appCadastrado;
         public Cadastrar()
         {
             InitializeComponent();
             DefinirGatilhos();
-            DefinirImgs();
             TrocarPage(1);
 
             btnSalvarAtalho.Click += (s, e) => SalvarAtalho();
@@ -51,21 +51,14 @@ namespace LudoHive.Telas
             }
         }
         //Primeira aba - Atalhos
-        private void DefinirImgs()
-        {
-            BitmapImage btm = new BitmapImage(new Uri(Referencias.imgPrincipal));
-            picIconAtalho.Source = btm;
-            picImgAtalho.Source = btm;
-            picIconApp.Source = btm;
-        }
         private void SalvarAtalho()
         {
             Atalhos atl = new Atalhos();
             atl.setNomeAtalho(txtbxNomeAtalho.Texto);
             atl.setCaminhoAtalho(txtbxCaminhoAtalho.Texto);
             atl.setParametroAtalho(txtbxParamAtalho.Texto);
-            if (picImgAtalho.Source is BitmapImage imgAtalho) atl.setImgAtalho(imgAtalho);
-            if (picIconAtalho.Source is BitmapImage imgIcon) atl.setIconeAtalho(imgIcon);
+            atl.setImgAtalho(picOnImgAtalho.Imagem);
+            atl.setIconeAtalho(picOnIconAtalho.Imagem);
 
             Atalhos.Salvar(atl);
 
@@ -80,8 +73,8 @@ namespace LudoHive.Telas
             atl.setNomeAtalho(txtbxNomeAtalho.Texto);
             atl.setCaminhoAtalho(txtbxCaminhoAtalho.Texto);
             atl.setParametroAtalho(txtbxParamAtalho.Texto);
-            if (picImgAtalho.Source is BitmapImage imgAtalho) atl.setImgAtalho(imgAtalho);
-            if (picIconAtalho.Source is BitmapImage imgIcon) atl.setIconeAtalho(imgIcon);
+            atl.setImgAtalho(picOnImgAtalho.Imagem); 
+            atl.setIconeAtalho(picOnIconAtalho.Imagem);
 
             Atalhos.Alterar(atl);
 
@@ -97,8 +90,8 @@ namespace LudoHive.Telas
             txtbxNomeAtalho.Texto = atalhoAtual.getNomeAtalho();
             txtbxCaminhoAtalho.Texto = atalhoAtual.getCaminhoAtalho();
             txtbxParamAtalho.Texto = atalhoAtual.getParametroAtalho();
-            picImgAtalho.Source = atalhoAtual.getImgAtalho();
-            picIconAtalho.Source = atalhoAtual.getIconeAtalho();
+            picOnImgAtalho.Imagem = atalhoAtual.getImgAtalho();
+            picOnIconAtalho.Imagem = atalhoAtual.getIconeAtalho();
 
             txtbxImgAtalho.Placeholder = "Deixe em branco para manter a imagem";
             txtbxIconAtalho.Placeholder = "Deixe em branco para manter o icone";
@@ -182,34 +175,31 @@ namespace LudoHive.Telas
                 ObterDestinoAtalho(openFileDialog.FileName);
             }
         }
-        private void EnterToEndAtalhos(object sender, KeyEventArgs e)
+        private void EnterToEndAtalhos(object sender, EventArgs e)
         {
-            if (e.Key == Key.Enter)
+            if (sender == txtbxNomeAtalho)
             {
-                if (sender == txtbxNomeAtalho)
+                txtbxCaminhoAtalho.SetFocus();
+            }
+            else if (sender == txtbxCaminhoAtalho)
+            {
+                txtbxParamAtalho.SetFocus();
+            }
+            else if (sender == txtbxParamAtalho)
+            {
+                txtbxImgAtalho.SetFocus();
+            }
+            else if (sender == txtbxImgAtalho)
+            {
+                txtbxIconAtalho.SetFocus();
+            }
+            else if (sender == txtbxIconAtalho)
+            {
+                if (imgCarregada == 1)
                 {
-                    txtbxCaminhoAtalho.Focus();
-                }
-                else if (sender == txtbxCaminhoAtalho)
-                {
-                    txtbxParamAtalho.Focus();
-                }
-                else if (sender == txtbxParamAtalho)
-                {
-                    txtbxImgAtalho.Focus();
-                }
-                else if (sender == txtbxImgAtalho)
-                {
-                    txtbxIconAtalho.Focus();
-                }
-                else if (sender == txtbxIconAtalho)
-                {
-                    if (imgCarregada == 1)
-                    {
-                        if (idDeAlteracao == 0) { SalvarAtalho(); }
-                        else { AlterarAtalho(); }
-                        imgCarregada = 0;
-                    }
+                    if (idDeAlteracao == 0) { SalvarAtalho(); }
+                    else { AlterarAtalho(); }
+                    imgCarregada = 0;
                 }
             }
         }
@@ -221,9 +211,11 @@ namespace LudoHive.Telas
             Aplicativos app = new Aplicativos();
             app.setNomeAplicativo(txtbxNomeApp.Texto);
             app.setCaminhoAplicativo(txtbxCaminhoApp.Texto);
-            if (picIconApp.Source is BitmapImage imgIcon) app.setIconeAplicativo(imgIcon);
+            app.setIconeAplicativo(picOnIconApp.Imagem);
 
             Aplicativos.Salvar(app);
+
+            appCadastrado?.Invoke(this, EventArgs.Empty);
 
             FecharCadastro();
         }
@@ -233,9 +225,11 @@ namespace LudoHive.Telas
             app.setIdAplicativo(idDeAlteracao);
             app.setNomeAplicativo(txtbxNomeApp.Texto);
             app.setCaminhoAplicativo(txtbxCaminhoApp.Texto);
-            if (picIconApp.Source is BitmapImage imgIcon) app.setIconeAplicativo(imgIcon);
+            app.setIconeAplicativo(picOnIconApp.Imagem);
 
             Aplicativos.Alterar(app);
+
+            appCadastrado?.Invoke(this, EventArgs.Empty);
 
             FecharCadastro();
         }
@@ -246,30 +240,27 @@ namespace LudoHive.Telas
             idDeAlteracao = app.getIdAplicativo();
             txtbxNomeApp.Texto = app.getNomeAplicativo();
             txtbxCaminhoApp.Texto = app.getCaminhoAplicativo();
-            picIconApp.Source = app.getIconeAplicativo();
+            picOnIconApp.Imagem = app.getIconeAplicativo();
 
             txtbxIconApp.Placeholder = "Deixe em branco para manter o icone";
         }
-        private void EnterToEndApps(object sender, KeyEventArgs e)
+        private void EnterToEndApps(object sender, EventArgs e)
         {
-            if (e.Key == Key.Enter)
+            if (sender == txtbxNomeApp)
             {
-                if (sender == txtbxNomeApp)
+                txtbxCaminhoApp.SetFocus();
+            }
+            else if (sender == txtbxCaminhoApp)
+            {
+                txtbxIconApp.SetFocus();
+            }
+            else if (sender == txtbxIconApp)
+            {
+                if (imgCarregada == 1)
                 {
-                    txtbxCaminhoApp.Focus();
-                }
-                else if (sender == txtbxCaminhoApp)
-                {
-                    txtbxIconApp.Focus();
-                }
-                else if (sender == txtbxIconApp)
-                {
-                    if (imgCarregada == 1)
-                    {
-                        if (idDeAlteracao == 0) { SalvarApp(); }
-                        else { AlterarAtalho(); }
-                        imgCarregada = 0;
-                    }
+                    if (idDeAlteracao == 0) { SalvarApp(); }
+                    else { AlterarAtalho(); }
+                    imgCarregada = 0;
                 }
             }
         }
@@ -290,16 +281,18 @@ namespace LudoHive.Telas
             btnPageAtalho.Click += (s, e) => TrocarPage(1);
             btnPageApp.Click += (s, e) => TrocarPage(2);
 
-            txtbxImgAtalho.KeyDown += (s, e) => { if (e.Key == Key.Enter) { BaixarImgs(txtbxImgAtalho.Texto, picImgAtalho); } };
-            txtbxIconAtalho.KeyDown += (s, e) => { if (e.Key == Key.Enter) { BaixarImgs(txtbxIconAtalho.Texto, picIconAtalho); } };
-            txtbxImgAtalho.TextoChanged += (s, e) => BaixarImgs(txtbxImgAtalho.Texto, picImgAtalho);
-            txtbxIconAtalho.TextoChanged += (s, e) => BaixarImgs(txtbxIconAtalho.Texto, picIconAtalho);
+            txtbxImgAtalho.EnterPressed += (s, e) => picOnImgAtalho.Url = txtbxImgAtalho.Texto;
+            txtbxIconAtalho.EnterPressed += (s, e) => picOnIconAtalho.Url = txtbxIconAtalho.Texto;
+            txtbxImgAtalho.TextoChanged += (s, e) => picOnImgAtalho.Url = txtbxImgAtalho.Texto;
+            txtbxIconAtalho.TextoChanged += (s, e) => picOnIconAtalho.Url = txtbxIconAtalho.Texto;
 
-            txtbxNomeAtalho.KeyDown += EnterToEndAtalhos;
-            txtbxCaminhoAtalho.KeyDown += EnterToEndAtalhos;
-            txtbxParamAtalho.KeyDown += EnterToEndAtalhos;
-            txtbxImgAtalho.KeyDown += EnterToEndAtalhos;
-            txtbxIconAtalho.KeyDown += EnterToEndAtalhos;
+            txtbxNomeAtalho.EnterPressed += EnterToEndAtalhos;
+            txtbxCaminhoAtalho.EnterPressed += EnterToEndAtalhos;
+            txtbxParamAtalho.EnterPressed += EnterToEndAtalhos;
+            txtbxImgAtalho.EnterPressed += EnterToEndAtalhos;
+            txtbxIconAtalho.EnterPressed += EnterToEndAtalhos;
+
+            picOnIconAtalho.ImgCarregada += () => imgCarregada = 1;
 
             //Segunda Aba - Aplicativos
 
@@ -308,12 +301,14 @@ namespace LudoHive.Telas
             btnExeAppLocal.Click += (s, e) => CriarTelaDeCola(null, "Colar URL ou URI");
             btnCancelarApp.Click += (s, e) => FecharCadastro();
 
-            txtbxIconApp.KeyDown += (s, e) => { if (e.Key == Key.Enter) { BaixarImgs(txtbxIconApp.Texto, picIconApp); } };
-            txtbxIconApp.TextoChanged += (s, e) => BaixarImgs(txtbxIconApp.Texto, picIconApp);
+            txtbxIconApp.KeyDown += (s, e) => { if (e.Key == Key.Enter) { picOnIconApp.Url = txtbxIconApp.Texto; } };
+            txtbxIconApp.TextoChanged += (s, e) => picOnIconApp.Url = txtbxIconApp.Texto;
 
-            txtbxNomeApp.KeyDown += EnterToEndApps;
-            btnExeAppLocal.KeyDown += EnterToEndApps;
-            txtbxIconApp.KeyDown += EnterToEndApps;
+            txtbxNomeApp.EnterPressed += EnterToEndApps;
+            txtbxCaminhoApp.EnterPressed += EnterToEndApps;
+            txtbxIconApp.EnterPressed += EnterToEndApps;
+
+            picOnIconApp.ImgCarregada += () => imgCarregada = 1;
         }
         private void TrocarPage(int indice)
         {
@@ -343,41 +338,21 @@ namespace LudoHive.Telas
         }
         public void DadoRecebidoOnline(string urlRecebida, int labelEspecificado)
         {
+            MessageBox.Show(labelEspecificado.ToString());
             switch (labelEspecificado)
             {
-                case 0:
+                case 1:
                     txtbxImgAtalho.Texto = urlRecebida;
                     break;
-                case 1:
+                case 2:
                     txtbxIconAtalho.Texto = urlRecebida;
                     break;
-                case 2:
-                    //txtbxImgIconeApp.Texto = urlRecebida;
-                    break;
                 case 3:
-                    //txtbxURLApp.Texto = urlRecebida;
+                    txtbxIconApp.Texto = urlRecebida;
                     break;
-            }
-        }
-        private void Reaparecer(string nomeNavegador)
-        {
-            /*this.Show();
-            this.Owner.Show();*/
-
-            Process[] navegatorProcesses = Process.GetProcessesByName(nomeNavegador);
-            foreach (var process in navegatorProcesses)
-            {
-                try
-                {
-                    if (process != null && !process.HasExited)
-                    {
-                        process.Kill();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Erro ao encerrar o processo: {ex.Message}");
-                }
+                case 4:
+                    txtbxCaminhoApp.Texto = urlRecebida;
+                    break;
             }
         }
         private void BtnProcurarImgOnline(object sender, EventArgs e)
@@ -385,9 +360,9 @@ namespace LudoHive.Telas
             string palavraChave = txtbxNomeAtalho.Texto;
             string urlPesquisa = $"https://www.google.com/search?hl=pt-BR&tbm=isch&q={Uri.EscapeDataString(palavraChave)}";
 
-            //if (sender == btnIconOnlineApp) { palavraChave = txtbxNomeApp.Texto; }
+            if (sender == btnIconAppOnline) { palavraChave = txtbxNomeApp.Texto; }
 
-            if (sender == btnIconAtalhoOnline /*|| sender == btnIconOnlineApp*/)
+            if (sender == btnIconAtalhoOnline || sender == btnIconAppOnline)
             {
                 palavraChave += " Logo";
                 urlPesquisa = $"https://www.google.com/search?as_st=y&hl=pt-BR&as_q={Uri.EscapeDataString(palavraChave)}&as_epq=&as_oq=&as_eq=&imgar=s&imgcolor=&imgtype=&cr=&as_sitesearch=&as_filetype=&tbs=&udm=2";
@@ -395,7 +370,7 @@ namespace LudoHive.Telas
 
             try
             {
-                string caminhoNavegador = GetDefaultBrowserPath();
+                string caminhoNavegador = Properties.Settings.Default.NavegadorEmUso;
 
                 Process navegadorAberto;
 
@@ -410,10 +385,10 @@ namespace LudoHive.Telas
 
                 string acaoTelaCola = "";
                 if (sender == btnImgAtalhoOnline) { acaoTelaCola = lblImgAtalho.Content?.ToString(); }
-                /*else
-                if (sender == btnIconAtalhoOnline) { acaoTelaCola = lblImgIconeApp.Text; }
                 else
-                if (sender == btnIconOnlineApp) { acaoTelaCola = lblImgIconeApp.Text; }*/
+                if (sender == btnIconAtalhoOnline) { acaoTelaCola = lblIconAtalho.Content?.ToString(); }
+                else
+                if (sender == btnIconAppOnline) { acaoTelaCola = lblIconApp.Content?.ToString(); }
 
                 CriarTelaDeCola(navegadorAberto, acaoTelaCola);
             }
@@ -421,35 +396,6 @@ namespace LudoHive.Telas
             {
                 MessageBox.Show($"Erro ao abrir o navegador: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-        private string GetDefaultBrowserPath()
-        {
-            string browserPath = string.Empty;
-
-            string userChoicePath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice";
-
-            string progId = Registry.GetValue(userChoicePath, "ProgId", null) as string;
-
-            if (string.IsNullOrEmpty(progId))
-                throw new Exception("Navegador padrão não encontrado.");
-
-            string browserRegPath = $@"HKEY_CLASSES_ROOT\{progId}\shell\open\command";
-            browserPath = Registry.GetValue(browserRegPath, null, null) as string;
-
-            if (string.IsNullOrEmpty(browserPath))
-                throw new Exception("Caminho do navegador padrão não encontrado.");
-
-            int firstQuote = browserPath.IndexOf('"');
-            if (firstQuote >= 0)
-            {
-                int secondQuote = browserPath.IndexOf('"', firstQuote + 1);
-                if (secondQuote > firstQuote)
-                {
-                    browserPath = browserPath.Substring(firstQuote + 1, secondQuote - firstQuote - 1);
-                }
-            }
-
-            return browserPath;
         }
         public void BtnProcurarImgLocal(object sender, EventArgs e)
         {
@@ -483,235 +429,15 @@ namespace LudoHive.Telas
             if (this.Parent is Grid grid)
             {
                 grid.Children.Remove(this);
+                grid.UnregisterName(this.Name);
             }
         }
-
         private void CriarTelaDeCola(Process navegadorAberto, string acaoTelaCola)
         {
-            /*if (navegadorAberto != null && !navegadorAberto.HasExited)
-            {
-                string nomeDoProcessador = navegadorAberto.ProcessName;
-                Form4 telaCola = new Form4(navegadorAberto, acaoTelaCola);
-                telaCola.Owner = this;
-                telaCola.FormClosed += (s, e) => Reaparecer(nomeDoProcessador);
-
-                this.Owner.Hide();
-                this.Hide();
-
-                telaCola.ShowDialog();
-            }
-            else
-            {
-                Form4 telaCola = new Form4(acaoTelaCola);
-                telaCola.Owner = this;
-
-                this.Owner.Hide();
-                this.Hide();
-
-                telaCola.ShowDialog();
-            }*/
-        }
-        private async Task BaixarImgs(string pathToImg, Image pcbxEmUso)
-        {
-            try
-            {
-                string formato = await DetectarFormatoAsync(pathToImg);
-                bool eIcone = pcbxEmUso == picIconAtalho || pcbxEmUso == picIconApp;
-
-                if (string.IsNullOrEmpty(pathToImg))
-                {
-                    if (txtbxCaminhoAtalho.Texto != "")
-                    {
-                        pcbxEmUso.Source = new BitmapImage(new Uri( Referencias.imgPrincipal));
-                    }
-                    return;
-                }
-
-                if (formato == "LOCAL")
-                {
-                    BitmapImage imgCarregada = new BitmapImage(new Uri(pathToImg, UriKind.Absolute));
-                    if (imgCarregada.Width != imgCarregada.Height && eIcone)
-                    {
-                        txtbxIconAtalho.Texto = "";
-                        MessageBox.Show("a imagem deve ser quadrada");
-                    }
-                    else
-                    {
-                        pcbxEmUso.Source = imgCarregada;
-                    }
-                }
-                else if (formato == "BASE64")
-                {
-                    var base64Data = pathToImg.Split(',')[1];
-                    byte[] bytesDaImg2 = Convert.FromBase64String(base64Data);
-
-                    using (MemoryStream ms = new MemoryStream(bytesDaImg2))
-                    {
-                        BitmapImage imgCarregada = Referencias.memoryStreamToBitmap(ms);
-                        if (imgCarregada.Width != imgCarregada.Height && eIcone)
-                        {
-                            txtbxIconAtalho.Texto = "";
-                            MessageBox.Show("a imagem deve ser quadrada");
-                        }
-                        else
-                        {
-                            pcbxEmUso.Source = imgCarregada;
-                        }
-                    }
-                }
-                else if (formato == "OUTRO")
-                {
-                    using (HttpClient client = new HttpClient())
-                    {
-                        byte[] bytesDaImg = await client.GetByteArrayAsync(pathToImg);
-
-                        using (MemoryStream ms = new MemoryStream(bytesDaImg))
-                        {
-                            BitmapImage imgCarregada = Referencias.memoryStreamToBitmap(ms);
-                            if (imgCarregada.Width != imgCarregada.Height && eIcone)
-                            {
-                                txtbxIconAtalho.Texto = "";
-                                MessageBox.Show("a imagem deve ser quadrada");
-                            }
-                            else
-                            {
-                                pcbxEmUso.Source = imgCarregada;
-                            }
-                        }
-                    }
-                }
-                else if (formato == "WEBP")
-                {
-                    BitmapImage imagem = await CarregarImagemWebpAsync(pathToImg);
-
-                    if (imagem != null)
-                    {
-                        using (MemoryStream ms = new MemoryStream())
-                        {
-                            BitmapImage imgCarregada = Referencias.memoryStreamToBitmap(ms);
-
-                            pcbxEmUso.Source = imgCarregada;
-                        }
-                    }
-                }
-                else if (formato == "ICO")
-                {
-                    BitmapImage imagem = await BaixarEConverterIcoAsync(pathToImg);
-
-                    if (imagem != null)
-                    {
-                        using (MemoryStream ms = new MemoryStream())
-                        {
-                            BitmapImage imgCarregada = Referencias.memoryStreamToBitmap(ms);
-
-                            pcbxEmUso.Source = imgCarregada;
-                        }
-                    }
-                }
-                else { return; }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Erro ao baixar a imagem: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        private async Task<string> DetectarFormatoAsync(string url)
-        {
-            if (url.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) { return "BASE64"; }
-            else
-            if (File.Exists(url)) { return "LOCAL"; }
-            else
-            if (Uri.TryCreate(url, UriKind.Absolute, out Uri? uriResult) && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
-            {
-                using (HttpClient client = new HttpClient())
-                {
-                    byte[] bytes = await client.GetByteArrayAsync(url);
-
-                    if (bytes.Length >= 12)
-                    {
-                        string header = BitConverter.ToString(bytes.Take(12).ToArray()).Replace("-", "");
-
-                        if (header.StartsWith("52494646") && header.Contains("57454250")) // WEBP
-                            return "WEBP";
-
-                        if (header.StartsWith("00000100") || header.StartsWith("00000200")) // ICO
-                            return "ICO";
-                    }
-                    return "OUTRO";
-                }
-            }
-            return "NENHUM";
-        }
-        private async Task<BitmapImage> CarregarImagemWebpAsync(string url)
-        {
-            using (HttpClient client = new HttpClient())
-            {
-                byte[] bytes = await client.GetByteArrayAsync(url);
-
-                using (var ms = new MemoryStream(bytes))
-                {
-                    SKBitmap bitmap = SKBitmap.Decode(ms);
-                    using (var imgStream = new MemoryStream())
-                    {
-                        bitmap.Encode(imgStream, SKEncodedImageFormat.Png, 100);
-                        imgStream.Seek(0, SeekOrigin.Begin);
-
-                        BitmapImage bitmapImage = new BitmapImage();
-                        bitmapImage.BeginInit();
-                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                        bitmapImage.StreamSource = imgStream;
-                        bitmapImage.EndInit();
-                        bitmapImage.Freeze();
-
-                        return bitmapImage;
-                    }
-                }
-            }
-        }
-        private async Task<BitmapImage> BaixarEConverterIcoAsync(string url)
-        {
-            using (HttpClient client = new HttpClient())
-            {
-                byte[] icoBytes = await client.GetByteArrayAsync(url);
-
-                using (var ms = new MemoryStream(icoBytes))
-                {
-                    SKBitmap bitmap = SKBitmap.Decode(ms);
-                    if (bitmap == null)
-                        throw new Exception("Não foi possível decodificar a imagem como um ícone válido.");
-
-                    using (MemoryStream pngStream = new MemoryStream())
-                    {
-                        bitmap.Encode(pngStream, SKEncodedImageFormat.Png, 100);
-                        pngStream.Seek(0, SeekOrigin.Begin);
-
-                        BitmapImage imgCarregada = new BitmapImage();
-                        imgCarregada.BeginInit();
-                        imgCarregada.CacheOption = BitmapCacheOption.OnLoad;
-                        imgCarregada.StreamSource = pngStream;
-                        imgCarregada.EndInit();
-                        imgCarregada.Freeze();
-
-                        return imgCarregada;
-                    }
-                }
-            }
-        }
-
-        //Centralizar manualmente ja que essa merda n vem automatico igual no window form pelo menos não dessa maneira
-        private void picImgAtalho_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            this.Dispatcher.Invoke(new Action(() =>
-            {
-                picImgAtalho.Margin = new Thickness(recPicImgAtalho.Margin.Left + (recPicImgAtalho.ActualWidth - picImgAtalho.ActualWidth) / 2, recPicImgAtalho.Margin.Top + (recPicImgAtalho.ActualHeight - picImgAtalho.ActualHeight) / 2, 0, 0);
-            }));
-        }
-        private void picIconAtalho_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            this.Dispatcher.Invoke(new Action(() =>
-            {
-                picIconAtalho.Margin = new Thickness(recPicIconAtalho.Margin.Left + (recPicIconAtalho.ActualWidth - picIconAtalho.ActualWidth) / 2, recPicIconAtalho.Margin.Top + (recPicIconAtalho.ActualHeight - picIconAtalho.ActualHeight) / 2, 0, 0);
-            }));
+            TelaDeCola tela = new TelaDeCola(navegadorAberto, acaoTelaCola);
+            tela.Owner = Window.GetWindow(this);
+            tela.Owner.Hide();
+            tela.Show();
         }
     }
 }

@@ -1,0 +1,18 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LudoHive"
+        xmlns:Controles="clr-namespace:LudoHive.Telas.Controles" x:Class="LudoHive.TelaDeCola"
+        mc:Ignorable="d"
+        Title="TelaDeCola" Height="253" Width="1000" Topmost="True" Padding="0" Margin="0" Background="#FF252525" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" WindowStyle="None">
+    <Grid>
+        <Controles:TextboxCustom x:Name="txtbxURLReturn" Margin="227,84,10,0" CorBackground="#FF3B3A3A" CorForeground="Black" CorPlaceholder="DimGray" Fontsize="14" Placeholder="Cole o url aqui" Height="52" VerticalAlignment="Top"/>
+        <Label x:Name="lblNomeDaPesquisa" Content="Nome da ação" Margin="227,45,0,0" VerticalAlignment="Top" Foreground="Silver" FontWeight="Bold" FontSize="27" HorizontalAlignment="Left"/>
+        <Button x:Name="btnCloseTelaCola" Content="Cancelar" Margin="0,0,11,13" VerticalAlignment="Bottom" Background="#FF3B3A3A" BorderBrush="Black" Height="43" HorizontalAlignment="Right" Width="176"/>
+        <Button x:Name="btnSendTelaCola" Content="Enviar" HorizontalAlignment="Right" Margin="0,0,192,13" VerticalAlignment="Bottom" Background="#FF3B3A3A" BorderBrush="Black" Height="43" Width="176"/>
+        <Controles:ImgOnline x:Name="picOnImgPesquisa" HorizontalAlignment="Left" Margin="10,50,0,0" TamanhoImg="193,193" Height="185" VerticalAlignment="Top" />
+        <Controles:TitleBar VerticalAlignment="Top" Title="BUSCAR URL" HeightTitle="40" Posicao="2" ImgClose="/Assets/BtnFechar.png" ImgIcon="/Assets/LudoHive_Logo.png" ImgMax="/Assets/BtnMaximizar.png" ImgMin="/Assets/BtnMinimizar.png" BtnClose="True" ColorTitle="#FF212121" BtnMin="False" Resize="False" WidthFixed="397"/>
+    </Grid>
+</Window>

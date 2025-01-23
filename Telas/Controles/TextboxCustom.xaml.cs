@@ -30,7 +30,7 @@ namespace LudoHive.Telas.Controles
         private Color _corForeground;
         private Color _corPlaceholder;
         private int _fontSize;
-        private string _text;
+        private string _text = "";
         public event EventHandler TextoChanged;
         public event EventHandler EnterPressed;
         public bool Password
@@ -190,6 +190,10 @@ namespace LudoHive.Telas.Controles
                 }
             });
         }
+        private void label_Click(object sender, MouseButtonEventArgs e)
+        {
+            txtbxTexto.Focus();
+        }
         protected virtual void OnTextChanged(EventArgs e)
         {
             TextoChanged?.Invoke(this, e);
@@ -205,24 +209,25 @@ namespace LudoHive.Telas.Controles
         {
             EnterPressed?.Invoke(this, e);
         }
-
         private void textBox1_TextChanged(object sender, TextChangedEventArgs e)
         {
             Texto = txtbxTexto.Text;
             if (Password) { Texto = pwdBox.Password; }
         }
-
         private void label1_Click(object sender, MouseButtonEventArgs e)
         {
             txtbxTexto.Focus();
         }
-
         private void textBox1_EnterOrLeave(object sender, RoutedEventArgs e)
         {
             if (txtbxTexto.Text == "")
             {
                 TransicaoLabel();
             }
+        }
+        public void SetFocus()
+        {
+            txtbxTexto.Focus();
         }
     }
 }

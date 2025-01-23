@@ -16,6 +16,7 @@ using SharpDX.DirectInput;
 using System.Windows.Media.Animation;
 using LudoHive.Telas.Controles;
 using LudoHive.Telas;
+using System.Text.RegularExpressions;
 
 namespace LudoHive;
     /// <summary>
@@ -28,7 +29,7 @@ public partial class MainWindow : Window
     private Atalhos atalhoAtual;
     private List<Atalhos> atalhosProximos = new List<Atalhos>();
     private Process jogoAberto;
-    private int idAtual = 2;
+    private int idAtual = Properties.Settings.Default.IdUltimoJogo;
     private bool jogoEmUso = false;
     private bool trocandoImage = false;
     // Bandeja ========================
@@ -37,10 +38,11 @@ public partial class MainWindow : Window
     // Painel APPS ====================
     private bool appsOcultos = true;
     int heightPnlApps;
+    private Popup pop;
+    private List<FrameworkElement> controlesPermitidos = new List<FrameworkElement>();
     // Temporizadores =================
     private static System.Timers.Timer temporizadorDoRelogio, timerProcessoEstabilizar;
     private static DateTime horario;
-    private SynchronizationContext _syncContext;
     // Controle =======================
     private Controle controle;
     private IntPtr _notificationHandle;
@@ -62,6 +64,20 @@ public partial class MainWindow : Window
     private static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int nIndex);
+    [DllImport("user32.dll")]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
+    [DllImport("user32.dll")]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    private const int WM_HOTKEY = 0x0312;
+    private const int MOD_ALT = 0x0001;
+    private const int MOD_CONTROL = 0x0002;
+    private const int VK_NUMPAD5 = 0x65;
+    private const int VK_T = 0x54;
+
+    private IntPtr _windowHandle;
+    private HwndSource _source;
+
     const int GWL_STYLE = -16;
     const int WS_BORDER = 0x00800000;
     const int WS_CAPTION = 0x00C00000;
@@ -78,28 +94,19 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        _syncContext = SynchronizationContext.Current;
-
         AtalhoPegarIds();
 
-        PicImgVinheta.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Vinheta.png")));
-        picImgAppsOcultos.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "PicAppsShow.png")));
+        PicImgVinheta.Source = new BitmapImage(Referencias.vinheta);
+        picImgAppsOcultos.Source = new BitmapImage(Referencias.picAppsShow);
 
         DefinirGatilhos();
 
         CriarRelogio();
-
-        var closeWindowCommand = new RelayCommand(CloseWindow);
-        var closeGameCommand = new RelayCommand(CloseGame);
-        var RestaurarCommand = new RelayCommand(RestaurarApp);
-
-        this.InputBindings.Add(new KeyBinding(closeWindowCommand, new KeyGesture(System.Windows.Input.Key.Q, ModifierKeys.Control | ModifierKeys.Alt)));
-        this.InputBindings.Add(new KeyBinding(closeGameCommand, new KeyGesture(System.Windows.Input.Key.NumPad5, ModifierKeys.Alt)));
-        this.InputBindings.Add(new KeyBinding(RestaurarCommand, new KeyGesture(System.Windows.Input.Key.NumPad5, ModifierKeys.Control)));
     }
+
     private void CloseWindow()
     {
-        this.Close();
+        Application.Current.Shutdown();
     }
     private void CloseGame()
     {
@@ -115,7 +122,7 @@ public partial class MainWindow : Window
     }
     private void RestaurarApp()
     {
-        this.Topmost = true; // Garante que fique sobre todas as janelas
+        this.Topmost = true;
         this.Focus();
         RestaurarPlayOS(null, null);
         this.Topmost = false;
@@ -223,7 +230,7 @@ public partial class MainWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WM_DEVICECHANGE)
+        if (msg == WM_DEVICECHANGE) //Controle
         {
             int wParamInt = wParam.ToInt32();
             if (wParamInt == DBT_DEVICEARRIVAL)
@@ -231,6 +238,23 @@ public partial class MainWindow : Window
                 controle = new Controle(lParam);
                 DefinirComandos();
             }
+        }
+        else if (msg == WM_HOTKEY) //Hotkeys
+        {
+            int id = wParam.ToInt32();
+            if (id == 9000)
+            {
+                CloseWindow();
+            }
+            else if (id == 9001)
+            {
+                CloseGame();
+            }
+            else if (id == 9002)
+            {
+                RestaurarApp();
+            }
+            handled = true;
         }
 
         return IntPtr.Zero;
@@ -274,13 +298,13 @@ public partial class MainWindow : Window
             else if (e.Key == System.Windows.Input.Key.Up)
             {
                 appsOcultos = false;
-                ToggleApps();
+                ToggleApps(null);
                 e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.Down)
             {
                 appsOcultos = true;
-                ToggleApps();
+                ToggleApps(null);
                 e.Handled = true; 
             }
             else if (e.Key == System.Windows.Input.Key.Space)
@@ -298,16 +322,18 @@ public partial class MainWindow : Window
         btnFechar.Click += (s, e) => this.Close();
         btnEditarAtalho.Click += BtnEditarAtalho;
         btnAdicionarAtalho.Click += (s, e) => Cadastrar();
+        btnConfigurar.Click += (s, e) => Configurar();
         btnDeletarAtalho.Click += BtnDeletarAtalho;
 
         btnNextAtalho.Click += (s, e) => GameNext();
         btnPrevAtalho.Click += (s, e) => GamePrev();
 
-        gdPnlApps.MouseDown += (s, e) => ToggleApps();
+        gdPnlApps.MouseDown += (s, e) => ToggleApps(e);
     }
     private void PegarApps()
     {
         gdApps.Children.Clear();
+        gdApps.Width = gdPnlApps.ActualWidth;
         ArrayList idsApps = Aplicativos.ConsultarIDs();
         List<Aplicativos> appsContext = new List<Aplicativos>();
 
@@ -332,9 +358,9 @@ public partial class MainWindow : Window
     }
     private Point OrganizacaoApps(int quantidadeDeApps, int posicaoDoApp)
     {
-        int tamanhoApp = 75;
-        int margemApps = 48;
-        int meiaTela = (int)gdApps.ActualWidth / 2;
+        int tamanhoApp = 100;
+        int margemApps = 33;
+        int meiaTela = (int)this.ActualWidth / 2;
         int posicao = meiaTela - tamanhoApp / 2;
 
         if (quantidadeDeApps % 2 == 0)
@@ -346,75 +372,69 @@ public partial class MainWindow : Window
 
         //posicao diminui o tamanho do panel * posicao em relacao a metade - margem de distancia entre os apps
         posicao += -tamanhoApp * (metadeDosApps - posicaoDoApp) - margemApps * (metadeDosApps - posicaoDoApp);
-
         return new Point(posicao, 12);
     }
-    private Panel CriacaoApp(Aplicativos appEmUso, Point localDoAplicativo)
+    private Grid CriacaoApp(Aplicativos appEmUso, Point localDoAplicativo)
     {
         Image picAppIcon = new Image
         {
             Source = appEmUso.getIconeAplicativo(),
-            Location = new Point(0, 0),
-            BackColor = Color.Transparent,
-            Margin = new Padding(0),
-            Name = "picIconApp_" + appEmUso.getNomeAplicativo() + ">" + appEmUso.getIdAplicativo(),
-            Size = new Size(75, 75),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            Clip = new RectangleGeometry(new Rect(0, 0, 200, 200), 20, 20)
+            Width = 100,
+            Height = 100,
+            Margin = new Thickness(0, 0, 0, 0),
+            Name = "picIconApp_" + Regex.Replace(appEmUso.getNomeAplicativo(), @"[^a-zA-Z0-9_]", "_") + "_ID_" + appEmUso.getIdAplicativo(),
+            Stretch = Stretch.Uniform,
+            Clip = new RectangleGeometry(new Rect(0, 0, 100, 100), 20, 20),
+            VerticalAlignment = VerticalAlignment.Top
         };
         //
+        TextBlock textBlock = new TextBlock
+        {
+            Text = appEmUso.getNomeAplicativo(),
+            TextWrapping = TextWrapping.Wrap,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextAlignment = System.Windows.TextAlignment.Center
+        };
         Label lblAppNome = new Label
         {
-            Font = new Font("Arial", 9F, FontStyle.Bold, GraphicsUnit.Point, 0),
-            Anchor = AnchorStyles.Top,
-            BackColor = Color.Transparent,
-            Location = new Point(0, 75),
-            Margin = new Padding(0),
-            Name = "lblNomeApp_" + appEmUso.getNomeAplicativo() + ">" + appEmUso.getIdAplicativo(),
-            Size = new Size(75, 48),
-            TabIndex = 22,
-            Text = appEmUso.getNomeAplicativo(),
-            TextAlign = ContentAlignment.MiddleCenter
+            FontFamily = new FontFamily("Arial"),
+            FontSize = 14,
+            FontWeight = FontWeights.Bold,
+            Margin = new Thickness(0, 100, 0, 0),
+            Name = "lblNomeApp_" + Regex.Replace(appEmUso.getNomeAplicativo(), @"[^a-zA-Z0-9_]", "_") + "_ID_" + appEmUso.getIdAplicativo(),
+            Width = 100,
+            Height = 100,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top,
+            Content = textBlock
         };
         //
-        Panel pnlBackground = new Panel
+        Grid pnlBackground = new Grid
         {
-            Location = localDoAplicativo,
-            Margin = new Padding(0),
-            Name = "pnl_" + appEmUso.getNomeAplicativo() + ">" + appEmUso.getIdAplicativo(),
-            Size = new Size(75, 123),
-            TabIndex = 21
+            Margin = new Thickness(localDoAplicativo.X, localDoAplicativo.Y, 0, 0),
+            Name = "pnl_" + Regex.Replace(appEmUso.getNomeAplicativo(), @"[^a-zA-Z0-9_]", "_") + "_ID_" + appEmUso.getIdAplicativo(),
+            Width = 100,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left
         };
-        pnlBackground.Controls.Add(picAppIcon);
-        pnlBackground.Controls.Add(lblAppNome);
+        pnlBackground.Children.Add(picAppIcon);
+        pnlBackground.Children.Add(lblAppNome);
 
-        Color cor = Color.FromArgb(67, 0, 0, 0);
+        Brush cor = new SolidColorBrush(Color.FromArgb(67, 0, 0, 0));
+        Brush semCor = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
 
-        pnlBackground.MouseEnter += (s, e) => pnlBackground.BackColor = cor;
-        lblAppNome.MouseEnter += (s, e) => pnlBackground.BackColor = cor;
-        picAppIcon.MouseEnter += (s, e) => pnlBackground.BackColor = cor;
-        pnlBackground.MouseLeave += (s, e) => pnlBackground.BackColor = Color.Transparent;
-        lblAppNome.MouseLeave += (s, e) => pnlBackground.BackColor = Color.Transparent;
-        picAppIcon.MouseLeave += (s, e) => pnlBackground.BackColor = Color.Transparent;
+        pnlBackground.MouseEnter += (s, e) => pnlBackground.Background = cor;
+        pnlBackground.MouseLeave += (s, e) => pnlBackground.Background = semCor;
 
-        picAppIcon.MouseClick += (s, e) =>
+        pnlBackground.MouseDown += (s, e) =>
         {
-            if (e.Button == MouseButtons.Right)
+            if (e.ChangedButton == MouseButton.Right)
             {
-                CriarPopup(appEmUso.getIdAplicativo());
+                CriarOpcoes(appEmUso.getIdAplicativo());
             }
-            if (e.Button == MouseButtons.Left)
-            {
-                BtnAbrirAplicativos(s, e);
-            }
-        };
-        lblAppNome.MouseClick += (s, e) =>
-        {
-            if (e.Button == MouseButtons.Right)
-            {
-                CriarPopup(appEmUso.getIdAplicativo());
-            }
-            if (e.Button == MouseButtons.Left)
+            if (e.ChangedButton == MouseButton.Left)
             {
                 BtnAbrirAplicativos(s, e);
             }
@@ -422,10 +442,164 @@ public partial class MainWindow : Window
 
         return pnlBackground;
     }
-    private void ToggleApps()
+    private void CriarOpcoes(int id)
+    {
+        Boxes boxAbrirApp = new Boxes()
+        {
+            IdBox = 0,
+            IdRepassar = id,
+            //Imagem = Properties.Resources.AdicionarAFila,
+            Nome = "Abrir"
+        };
+        Boxes boxEditarApp = new Boxes()
+        {
+            IdBox = 1,
+            IdRepassar = id,
+            //Imagem = Properties.Resources.AdicionarAFila,
+            Nome = "Editar"
+        };
+        Boxes boxDeletarApp = new Boxes()
+        {
+            IdBox = 2,
+            IdRepassar = id,
+            //Imagem = Properties.Resources.AdicionarAFila,
+            Nome = "Deletar"
+        };
+        List<Boxes> bxs = new List<Boxes>() { boxAbrirApp, boxEditarApp, boxDeletarApp };
+        
+        CriarPopup(bxs);
+    }
+    private void ReconhecerEscolhaPopup(int botaoClicado, int valorRepassado)
+    {
+        if (botaoClicado == 0) { BtnAbrirAplicativos(null, EventArgs.Empty, valorRepassado); }
+        if (botaoClicado == 1) { BtnEditarAplicativos(valorRepassado); }
+        if (botaoClicado == 2) { BtnDeletarAplicativos(valorRepassado); }
+    }
+    private void BtnDeletarAplicativos(int id)
+    {
+        try
+        {
+            Aplicativos.Deletar(id);
+            PegarApps();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Erro ao deletar o aplicativo: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    private void BtnEditarAplicativos(int id)
+    {
+        Cadastrar cad = new Cadastrar(id, 1)
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        cad.appCadastrado += (s, e) => PegarApps();
+
+        mainGrid.Children.Add(cad);
+        Panel.SetZIndex(cad, 10);
+    }
+    private void CriarPopup(List<Boxes> boxes)
+    {
+        Point relativePos = PointFromScreen(System.Windows.Input.Mouse.GetPosition(this));
+
+        if(pop != null)
+        {
+            mainGrid.Children.Remove(pop);
+            CriarDetectarCliqueForaPopup(false);
+        }
+
+        pop = new Popup()
+        {
+            ColorElementoPopup = Color.FromArgb(255, 44, 44, 44),
+            ColorPopup = Color.FromArgb(255, 21, 22, 23),
+            ColorTextPopup = Color.FromArgb(255, 192, 192, 192),
+            Margin = new Thickness(relativePos.X, relativePos.Y, 0, 0),
+            Name = "popup1",
+            SizePopup = new Size(278, 0),
+            VerticalAlignment = VerticalAlignment.Top,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+
+        foreach (Boxes box in boxes)
+        {
+            pop.ElementosPopup.Add(box);
+        }
+
+        mainGrid.Children.Add(pop);
+        Panel.SetZIndex(pop, 11);
+
+        pop.BoxClicadoEvent += ReconhecerEscolhaPopup;
+
+        CriarDetectarCliqueForaPopup(true);
+    }
+    private void CriarDetectarCliqueForaPopup(bool detectar)
+    {
+        if (detectar)
+        {
+            mainGrid.MouseDown += ClicarForaDoPopup;
+        }
+        else
+        {
+            mainGrid.MouseDown -= ClicarForaDoPopup;
+        }
+    }
+    private void ClicarForaDoPopup(object sender, MouseEventArgs e)
+    {
+        mainGrid.Children.Remove(pop);
+        pop = null;
+        CriarDetectarCliqueForaPopup(false);
+    }
+
+    private void BtnAbrirAplicativos(object sender, EventArgs e, int id = 0)
+    {
+        Grid gd = sender as Grid;
+        if (gd != null && gd.Name.Contains("_ID_"))
+        {
+            id = int.Parse(gd.Name.Split("_ID_")[1]);
+        }
+        else if(id == 0) { id = idsApps[(int)appAtual]; }
+
+        try
+        {
+            Aplicativos appPraAbrir = new Aplicativos(id);
+
+            string url = appPraAbrir.getCaminhoAplicativo();
+
+            string diretorioTrabalho = System.IO.Path.GetDirectoryName(url);
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = url,
+                WorkingDirectory = diretorioTrabalho,
+                UseShellExecute = true
+            };
+
+            Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Erro ao abrir o aplicativo: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    private void ToggleApps(MouseEventArgs e)
     {
         Dispatcher.InvokeAsync(() =>
         {
+            if (e != null) { 
+                var originalSource = e.OriginalSource as UIElement;
+                var gdpnl = VisualTreeHelper.GetParent(originalSource);
+                if (originalSource is Border)
+                {
+                    gdpnl = VisualTreeHelper.GetParent(gdpnl);
+                }
+                if ((gdpnl is Grid && gdpnl != gdPnlApps) || (originalSource is Grid && originalSource != gdPnlApps))
+                {
+                    return; //Se o mouse clicou em um dos aplicativos, não fechar
+                }
+            }
+
             if (appsOcultos == false)
             {
                 ThicknessAnimation animation = new ThicknessAnimation
@@ -438,7 +612,7 @@ public partial class MainWindow : Window
 
                 animation.Completed += (s, e) =>
                 {
-                    picImgAppsOcultos.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "PicAppsShow.png")));
+                    picImgAppsOcultos.Source = new BitmapImage(Referencias.picAppsShow);
                     appsOcultos = true;
                 };
 
@@ -456,7 +630,7 @@ public partial class MainWindow : Window
 
                 animation.Completed += (s, e) =>
                 {
-                    picImgAppsOcultos.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "PicAppsHide.png")));
+                    picImgAppsOcultos.Source = new BitmapImage(Referencias.picAppsHide);
                     appsOcultos = false;
                 };
 
@@ -469,13 +643,30 @@ public partial class MainWindow : Window
         Cadastrar cad = new Cadastrar()
         {
             HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center,
+            Name = "cadastro"
         };
 
         cad.atalhoCadastrado += (s, e) => AtalhoPegarIds();
 
+        mainGrid.RegisterName(cad.Name, cad);
+
         mainGrid.Children.Add(cad);
         Panel.SetZIndex(cad, 10);
+    }
+    private void Configurar()
+    {
+        Configurar config = new Configurar()
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Name = "config"
+        };
+
+        mainGrid.RegisterName(config.Name, config);
+
+        mainGrid.Children.Add(config);
+        Panel.SetZIndex(config, 10);
     }
     private void BtnEditarAtalho(object sender, EventArgs e)
     {
@@ -533,7 +724,7 @@ public partial class MainWindow : Window
     }
     private void MonitoramentoDeProcesos()
     {
-        timerProcessoEstabilizar = new System.Timers.Timer(5000); //Tempo maximo de monitoramento de processos
+        timerProcessoEstabilizar = new System.Timers.Timer(5000);
         timerProcessoEstabilizar.Elapsed += VerificacaoProcessoEstabilizado;
         timerProcessoEstabilizar.AutoReset = true;
         timerProcessoEstabilizar.Enabled = true;
@@ -674,14 +865,15 @@ public partial class MainWindow : Window
     }
     private void PararPrograma()
     {
-        controle?.timerControle.Stop();
         PicControlON.Source = null;
+        controle?.timerControle.Stop();
         jogoEmUso = true;
     }
     private void VoltarPrograma()
     {
+        PicControlON.Source = new BitmapImage(Referencias.controlOn);
         controle?.timerControle.Start();
-        PicControlON.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "ControlON.png")));
+        if(controle == null) { PicControlON.Source = null; }
         jogoEmUso = false;
     }
     private void BtnMandarPraBandeja(object sender, EventArgs e)
@@ -693,7 +885,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            string[] processosIgnorados = { "dev", "notepad", "chrome", "firefox", "opera", "spotify", "edge", "steam", "textinput", "code", "xbox", "dwm", "taskmgr", "protected", "ludoh", "discord", "settings", "explorer", "svchost", "dllhost", "taskhost", "service", "application", "explorer" };
+            string[] processosIgnorados = { "dev", "riot", "notepad", "chrome", "firefox", "opera", "spotify", "edge", "steam", "textinput", "code", "xbox", "dwm", "taskmgr", "protected", "ludoh", "discord", "settings", "explorer", "svchost", "dllhost", "taskhost", "service", "application", "explorer" };
 
             if (processosIgnorados.Any(nome => processo.ProcessName.ToLower().Contains(nome)))
                 return true;
@@ -795,6 +987,7 @@ public partial class MainWindow : Window
             TransicaoImageAtalho(false);
             TransicaoImageAtalho(true);
         }
+        PegarApps();
         InicializarControle();
         RegisterForDeviceNotifications();
 
@@ -809,13 +1002,28 @@ public partial class MainWindow : Window
         var source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
         source.AddHook(WndProc);
 
-        /*picPuxarApps.Image = Properties.Resources.PicAppsShow;
-        PicArredondarBordas(picPuxarApps, 0, 0, 30, 30);
-        PegarApps();*/
+        RegisterHotKey(new WindowInteropHelper(this).Handle, 9000, MOD_CONTROL | MOD_ALT, VK_T);
+        RegisterHotKey(new WindowInteropHelper(this).Handle, 9001, MOD_CONTROL, VK_NUMPAD5);
+        RegisterHotKey(new WindowInteropHelper(this).Handle, 9002, MOD_ALT, VK_NUMPAD5);
     }
+
+    private void VisualizarEscolhaViaControle()
+    {
+        this.Dispatcher.Invoke(() =>
+        {
+            List<Grid> ctrls = new List<Grid>();
+            foreach (Grid ctrl in gdApps.Children)
+            {
+                ctrls.Add(ctrl);
+                ctrl.Background = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+            }
+            ctrls[(int)appAtual].Background = new SolidColorBrush(Color.FromArgb(67, 0, 0, 0));
+        });
+    }
+
     private void PicTransitionsCriar()
     {
-        int tamanhopic = (int)PicImgAtalhoAtual.ActualWidth;
+        int tamanhopic = (int)mainGrid.ActualWidth;
         PicImgAtalhoProx.Margin = new Thickness(-tamanhopic, 0, tamanhopic, 0);
         PicImgAtalhoPrev.Margin = new Thickness(tamanhopic, 0, -tamanhopic, 0);
     }
@@ -848,7 +1056,7 @@ public partial class MainWindow : Window
     {
         img.BeginAnimation(FrameworkElement.MarginProperty, null);
 
-        int tamanhopic = (int)PicImgAtalhoAtual.ActualWidth;
+        int tamanhopic = (int)mainGrid.ActualWidth;
         if (img == PicImgAtalhoProx) { tamanhopic = tamanhopic * -1; }
 
         PicImgAtalhoAtual.Source = atalhoAtual.getImgAtalho();
@@ -882,6 +1090,10 @@ public partial class MainWindow : Window
                 TransicaoImageAtalho(false);
                 idAtual = (int)ids[indiceAtual + 1];
                 AtalhoListar(idAtual);
+
+                Properties.Settings.Default.IdUltimoJogo = idAtual;
+                Properties.Settings.Default.Save();
+
                 return true;
             });
         }
@@ -900,6 +1112,10 @@ public partial class MainWindow : Window
                 TransicaoImageAtalho(true);
                 idAtual = (int)ids[indiceAtual - 1];
                 AtalhoListar(idAtual);
+
+                Properties.Settings.Default.IdUltimoJogo = idAtual;
+                Properties.Settings.Default.Save();
+
                 return true;
             });
         }
@@ -925,7 +1141,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            //Cadastrar();
+            Cadastrar();
         }
     }
     private void AtalhoListar(int idatual)
@@ -998,7 +1214,7 @@ public partial class MainWindow : Window
 
         horario = horarioAtual;
 
-        this.Dispatcher.Invoke(() => {
+        this.Dispatcher.InvokeAsync(() => {
             lblHoraAtual.Content = horario.ToString("HH:mm") + " h";
         });
     }
@@ -1018,7 +1234,7 @@ public partial class MainWindow : Window
     {
         if (!IsAdministrator())
         {
-            MessageBox.Show("Execute o programa como administrador para alterar o UAC.", "Permissão Necessária", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Execute o programa como administrador rra alterar o UAC.", "Permissão Necessária", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -1054,19 +1270,20 @@ public partial class MainWindow : Window
     // Controles ----------------------------------------------------------------------------------
     private void DefinirComandos()
     {
-        this.Dispatcher.Invoke(() => { PicControlON.Source = new BitmapImage(new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "ControlON.png"))); });
+        this.Dispatcher.Invoke(() => { PicControlON.Source = new BitmapImage(Referencias.controlOn); });
         controle.controlDisconnect += (s, e) => this.Dispatcher.Invoke(() => { PicControlON.Source = null; });
         controle.btnX += (s, e) => BtnX();
-        controle.btnQ += (s, e) => BtnO();
+        controle.btnB += (s, e) => BtnO();
         controle.moveLeft += (s, e) => MoveLeft();
         controle.moveRight += (s, e) => MoveRight();
         controle.moveDown += (s, e) => MoveDown();
         controle.moveUp += (s, e) => MoveUp();
+        VisualizarEscolhaViaControle();
     }
-    private void MoveRight() { if (appsOcultos) { GameNext(); } else { appAtual += 0.2f; if (appAtual >= appCount) { appAtual = appCount - 1; } /*VisualizarEscolhaViaControle();*/ } }
-    private void MoveLeft() { if (appsOcultos) { GamePrev(); } else { appAtual -= 0.2f; if (appAtual <= 0) { appAtual = 0; } /*VisualizarEscolhaViaControle();*/ } }
-    private void MoveUp() { appsOcultos = true; /*pnlAppTransition.Start(); heightPnlApps = pnlApps.Size.Height;*/ }
-    private void MoveDown() { appsOcultos = false; /*pnlAppTransition.Start(); heightPnlApps = pnlApps.Size.Height;*/ }
-    private void BtnX() { if (appsOcultos) { if (abrindoOJogo == false) { BtnAbrirAtalho(null, null); } } else { /*BtnAbrirAplicativos(null, null);*/ } }
+    private void MoveRight() { if (appsOcultos) { GameNext(); } else { appAtual += 1; if (appAtual >= appCount) { appAtual = appCount - 1; } VisualizarEscolhaViaControle(); } }
+    private void MoveLeft() { if (appsOcultos) { GamePrev(); } else { appAtual -= 1; if (appAtual <= 0) { appAtual = 0; } VisualizarEscolhaViaControle(); } }
+    private void MoveUp() { appsOcultos = true; appsOcultos = true; ToggleApps(null); }
+    private void MoveDown() { appsOcultos = false; appsOcultos = false; ToggleApps(null); }
+    private void BtnX() { if (appsOcultos) { if (abrindoOJogo == false) { BtnAbrirAtalho(null, null); } } else { BtnAbrirAplicativos(null, EventArgs.Empty); } }
     private void BtnO() { this.Dispatcher.Invoke(() => { this.Close(); }); }
 }

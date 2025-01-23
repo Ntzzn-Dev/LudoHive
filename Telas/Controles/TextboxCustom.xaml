@@ -11,7 +11,7 @@
 
         <TextBox x:Name="txtbxTexto" Margin="8,19,7,3" TextWrapping="Wrap" Background="#FF7D7D7D" BorderBrush="#FF7D7D7D" TextChanged="textBox1_TextChanged" MouseDown="label1_Click" KeyDown="TextBox1_KeyDown" GotFocus="textBox1_EnterOrLeave" LostFocus="textBox1_EnterOrLeave" SelectionBrush="#FF7D7D7D"/>
         <PasswordBox x:Name="pwdBox"  Margin="8,19,7,3" Background="#FF7D7D7D" BorderBrush="#FF7D7D7D" MouseDown="label1_Click" KeyDown="TextBox1_KeyDown" GotFocus="textBox1_EnterOrLeave" LostFocus="textBox1_EnterOrLeave" SelectionBrush="#FF7D7D7D" Visibility="Hidden"/>
-        <Label x:Name="lblPlaceholder" Content="Placeholder" Margin="6,14,0,0" VerticalAlignment="Top" Foreground="#FFBDBDBD" HorizontalAlignment="Left" FontWeight="Bold" Background="Transparent"/>
+        <Label x:Name="lblPlaceholder" Content="Placeholder" Margin="6,14,0,0" VerticalAlignment="Top" Foreground="#FFBDBDBD" HorizontalAlignment="Left" FontWeight="Bold" Background="Transparent" MouseDown="label_Click"/>
         
     </Grid>
 </UserControl>

@@ -1,0 +1,25 @@
+﻿<UserControl x:Class="LudoHive.Telas.Controles.TitleBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression.blend/2008" 
+             xmlns:local="clr-namespace:LudoHive.Telas.Controles"
+             mc:Ignorable="d" MinWidth="397">
+    <Grid x:Name="titleGrid" Background="#FF212121" WindowChrome.IsHitTestVisibleInChrome="False">
+        <Image x:Name="picIconWindow" Height="38" Width="{Binding Height, RelativeSource={RelativeSource Self}}" HorizontalAlignment="Left"/>
+        <Label x:Name="lblTitleWindow" Content="WINDOW NAME" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold" FontSize="24" Foreground="#FFA4A4A4" Margin="61,0,0,0"/>
+
+        <Image x:Name="picCloseWindow" Height="38" Width="{Binding Height, RelativeSource={RelativeSource Self}}" 
+               HorizontalAlignment="Right" Cursor="Hand" RenderOptions.BitmapScalingMode="HighQuality" 
+               IsHitTestVisible="True" WindowChrome.IsHitTestVisibleInChrome="True"/>
+
+        <Image x:Name="picMaximizeWindow" Height="38" Width="{Binding Height, RelativeSource={RelativeSource Self}}" 
+               HorizontalAlignment="Right" Cursor="Hand" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,38,0"
+               IsHitTestVisible="True" WindowChrome.IsHitTestVisibleInChrome="True"/>
+
+        <Image x:Name="picMinimizeWindow" Height="38" Width="{Binding Height, RelativeSource={RelativeSource Self}}" 
+               HorizontalAlignment="Right" Cursor="Hand" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,76,0"
+               IsHitTestVisible="True" WindowChrome.IsHitTestVisibleInChrome="True"/>
+
+    </Grid>
+</UserControl>

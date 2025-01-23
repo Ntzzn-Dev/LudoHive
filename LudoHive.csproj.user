@@ -7,10 +7,25 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="TelaDeCola.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Telas\Cadastrar.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Telas\Controles\ImgOnline.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Telas\Controles\Popup.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Telas\Controles\TextboxCustom.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Telas\Controles\TitleBar.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Telas\Controles\ToggleButton.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -18,10 +33,28 @@
     <Page Update="MainWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="TelaDeCola.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Telas\Configurar.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Telas\Cadastrar.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="Telas\Controles\ImgOnline.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Telas\Controles\Popup.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Telas\Controles\TextboxCustom.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Telas\Controles\TitleBar.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Telas\Controles\ToggleButton.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

@@ -357,8 +357,8 @@ namespace LudoHive
                         command.Parameters.AddWithValue("@nome", nome);
                         command.Parameters.AddWithValue("@caminho", caminho);
                         command.Parameters.AddWithValue("@parametro", parametro);
-                        if (imgEmBytes.Length != 0) { command.Parameters.AddWithValue("@img", imgEmBytes); }
                         if (icnEmBytes.Length != 0) { command.Parameters.AddWithValue("@icn", icnEmBytes); }
+                        if (imgEmBytes.Length != 0) { command.Parameters.AddWithValue("@img", imgEmBytes); }
                         command.Parameters.AddWithValue("@id", idDeAlteracao);
 
                         command.ExecuteNonQuery();
@@ -652,7 +652,11 @@ namespace LudoHive
     public class Referencias
     {
         public static string connectionString = $"Data Source={Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "applicationsShortcuts.db")}";
-        public static string imgPrincipal = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Morgan.jpg");
+        public static Uri imgPrincipal = new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Morgan.jpg"), UriKind.Absolute);
+        public static Uri controlOn = new Uri("pack://application:,,,/Assets/ControlON.png", UriKind.Absolute);
+        public static Uri picAppsHide = new Uri("pack://application:,,,/Assets/PicAppsHide.png", UriKind.Absolute);
+        public static Uri picAppsShow = new Uri("pack://application:,,,/Assets/PicAppsShow.png", UriKind.Absolute);
+        public static Uri vinheta = new Uri("pack://application:,,,/Assets/Vinheta.png", UriKind.Absolute);
         public Referencias()
         {
 
@@ -695,33 +699,6 @@ namespace LudoHive
             int minutos = tempo.Minutes;
 
             return $"{horas}h{minutos:D2}m";
-        }
-    }
-    public class RelayCommand : ICommand
-    {
-        private readonly Action _execute;
-        private readonly Func<bool> _canExecute;
-
-        public RelayCommand(Action execute, Func<bool> canExecute = null)
-        {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            _canExecute = canExecute;
-        }
-
-        public event EventHandler CanExecuteChanged
-        {
-            add => CommandManager.RequerySuggested += value;
-            remove => CommandManager.RequerySuggested -= value;
-        }
-
-        public bool CanExecute(object parameter)
-        {
-            return _canExecute?.Invoke() ?? true;
-        }
-
-        public void Execute(object parameter)
-        {
-            _execute();
         }
     }
     public class Controle{
