@@ -12,6 +12,8 @@
         <Image x:Name="PicImgAtalhoAtual"/>
         <Image x:Name="PicImgAtalhoProx"/>
         <Image x:Name="PicImgAtalhoPrev"/>
+        <Image x:Name="PicImgAtalhoNovaPasta"/>
+        <Image x:Name="PicImgApresentacao"/>
         <Image x:Name="PicImgVinheta" Stretch="Fill" Source="/Assets/Vinheta.png" Panel.ZIndex="1"/>
         <Label x:Name="lblNomeAtalho" Content="Nome do Jogo" HorizontalAlignment="Right" Margin="0,0,140,140" VerticalAlignment="Bottom" Foreground="Gray" FontWeight="Bold" FontSize="29" Panel.ZIndex="2"/>
         <Label x:Name="lblCaminhoAtalho" Content="Caminho do Jogo" HorizontalAlignment="Right" Margin="0,0,140,116" VerticalAlignment="Bottom" Foreground="Gray" FontSize="25" Panel.ZIndex="2"/>
@@ -174,5 +176,16 @@
                 </LinearGradientBrush>
             </Button.Background>
         </Button>
+        <Rectangle x:Name="recApresentacao" Margin="305,140,315,164" Panel.ZIndex="-1" RadiusX="83" RadiusY="83" HorizontalAlignment="Center" VerticalAlignment="Center" Width="800" Height="319">
+            <Rectangle.Fill>
+                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                    <GradientStop Color="#E5000000" Offset="0.617"/>
+                    <GradientStop Offset="1" Color="#07000000"/>
+                    <GradientStop Color="#7F000000" Offset="0.008"/>
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+        <Label x:Name="lblApresentacao" Content="Apresentação" Panel.ZIndex="-1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" FontWeight="Bold" FontSize="72" Foreground="#FF757575" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Label x:Name="lblPastaAtual" Content="Pasta: 1" Margin="7,95,0,0" VerticalAlignment="Top" Foreground="Gray" FontWeight="Bold" FontSize="29" Panel.ZIndex="2" HorizontalAlignment="Left"/>
     </Grid>
 </Window>

@@ -1,8 +1,12 @@
 ﻿using Microsoft.Data.Sqlite;
 using SharpDX.DirectInput;
 using System.Collections;
+using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Transactions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -26,7 +30,7 @@ namespace LudoHive
         {
             try
             {
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
                     string selectCommand = "SELECT Nome, Caminho, Icon FROM AplicativosExtras WHERE Id = @id";
@@ -71,7 +75,7 @@ namespace LudoHive
                 string url = appParaSalvamento.getCaminhoAplicativo();
                 byte[] icnEmBytes = Referencias.ConvertBitmapImageToByteArray(appParaSalvamento.getIconeAplicativo());
 
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
 
@@ -100,7 +104,7 @@ namespace LudoHive
                 string caminho = appParaAlteracao.getCaminhoAplicativo();
                 byte[] imgEmBytes = Referencias.ConvertBitmapImageToByteArray(appParaAlteracao.getIconeAplicativo());
 
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
 
@@ -131,7 +135,7 @@ namespace LudoHive
         {
             try
             {
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
                     string deleteCommand = "DELETE FROM AplicativosExtras WHERE id = @id";
@@ -155,7 +159,7 @@ namespace LudoHive
             ArrayList idsApps = new ArrayList();
             try
             {
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
 
@@ -216,6 +220,7 @@ namespace LudoHive
     public class Atalhos
     {
         private int id;
+        private int ordemDaPastaAtual;
         private string nome;
         private string caminho;
         private string parametro;
@@ -224,54 +229,60 @@ namespace LudoHive
         private string dataUltimaSessao;
         private string tempoUltimaSessao;
 
+        private int idPasta;
+        private string nomePasta;
+        private int ordemPasta;
+
         public Atalhos()
         {
 
         }
-        public Atalhos(int idDePesquisa)
+        public Atalhos(int idDePesquisa, int pastaAtual = 1)
         {
             try
             {
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
 
-                    string selectCommand = "SELECT Nome, Caminho, Parametro, Imagem, Icon, DataUltimaSessao, TempoUltimaSessao FROM AtalhosdeAplicativos WHERE Id = @id";
+                    string selectCommand = "SELECT pa.OrdemExibicao, a.Nome, a.Caminho, a.Parametro, a.Imagem, a.Icon, a.DataUltimaSessao, a.TempoUltimaSessao FROM AtalhosdeAplicativos a JOIN Pasta_Atalho pa ON a.Id = pa.Id_Atalho WHERE pa.Id_Pasta = @pasta AND a.Id = @id";
                     using (var command = new SqliteCommand(selectCommand, connection))
                     {
+                        command.Parameters.AddWithValue("@pasta", pastaAtual);
                         command.Parameters.AddWithValue("@id", idDePesquisa);
                         using (var reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {
-                                string nome = reader.GetString(0);
-                                string caminho = reader.GetString(1);
-                                string parametro = reader.GetString(2);
+                                int ordem = reader.GetInt32(0);
+                                string nome = reader.GetString(1);
+                                string caminho = reader.GetString(2);
+                                string parametro = reader.GetString(3);
 
-                                long tamanhoBlobImg = reader.GetBytes(3, 0, null, 0, 0);
+                                long tamanhoBlobImg = reader.GetBytes(4, 0, null, 0, 0);
 
                                 byte[] bufferImg = new byte[tamanhoBlobImg];
-                                reader.GetBytes(3, 0, bufferImg, 0, (int)tamanhoBlobImg);
+                                reader.GetBytes(4, 0, bufferImg, 0, (int)tamanhoBlobImg);
 
                                 using (MemoryStream ms = new MemoryStream(bufferImg))
                                 {
                                     setImgAtalho(Referencias.memoryStreamToBitmap(ms));
                                 }
 
-                                long tamanhoBlobIcon = reader.GetBytes(4, 0, null, 0, 0);
+                                long tamanhoBlobIcon = reader.GetBytes(5, 0, null, 0, 0);
 
                                 byte[] bufferIcon = new byte[tamanhoBlobIcon];
-                                reader.GetBytes(4, 0, bufferIcon, 0, (int)tamanhoBlobIcon);
+                                reader.GetBytes(5, 0, bufferIcon, 0, (int)tamanhoBlobIcon);
 
                                 using (MemoryStream ms = new MemoryStream(bufferIcon))
                                 {
                                     setIconeAtalho(Referencias.memoryStreamToBitmap(ms));
                                 }
 
-                                string dataSessao = reader.GetString(5);
-                                string tempoSessao = reader.GetString(6);
+                                string dataSessao = reader.GetString(6);
+                                string tempoSessao = reader.GetString(7);
 
-
+                                setOrdemAtalho(ordem);
                                 setIdAtalho(idDePesquisa);
                                 setNomeAtalho(nome);
                                 setCaminhoAtalho(caminho);
@@ -302,11 +313,14 @@ namespace LudoHive
                 string dataSessao = "sessao não iniciada ainda";
                 string tempoSessao = "0h00m";
 
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                int idPasta = atalhoParaSalvamento.getIdPasta();
+
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
 
-                    string insertCommand = "INSERT INTO AtalhosdeAplicativos (Nome, Caminho, Parametro, Imagem, Icon, DataUltimaSessao, TempoUltimaSessao, DataTodasSessoes, TempoTodasSessoes) VALUES (@nome, @caminho, @parametro, @img, @icon, @datasessao, @temposessao, @datasessoes, @temposessoes)";
+                    string insertCommand = @"INSERT INTO AtalhosdeAplicativos (Nome, Caminho, Parametro, Imagem, Icon, DataUltimaSessao, TempoUltimaSessao, DataTodasSessoes, TempoTodasSessoes) VALUES (@nome, @caminho, @parametro, @img, @icon, @datasessao, @temposessao, @datasessoes, @temposessoes)";
+                    long idAtalho = 0;
                     using (var command = new SqliteCommand(insertCommand, connection))
                     {
                         command.Parameters.AddWithValue("@nome", nome);
@@ -319,9 +333,19 @@ namespace LudoHive
                         command.Parameters.AddWithValue("@datasessoes", dataSessao);
                         command.Parameters.AddWithValue("@temposessoes", tempoSessao);
 
-                        command.ExecuteNonQuery();
+                        idAtalho = (long)command.ExecuteScalar();
                     }
-                    connection.Close();
+
+                    string insertPastaAtalhoCommand = "INSERT INTO Pasta_Atalho (Id_Pasta, Id_Atalho, OrdemExibicao) SELECT @idPasta, @idAtalho, IFNULL(MAX(OrdemExibicao), 0) + 1 FROM Pasta_Atalho WHERE Id_Pasta = 1;";
+                    /*foreach (int idArtista in artistasIds)
+                    {*/
+                        using (var command = new SqliteCommand(insertPastaAtalhoCommand, connection))
+                        {
+                            command.Parameters.AddWithValue("@idPasta", idPasta);
+                            command.Parameters.AddWithValue("@idAtalho", idAtalho);
+                        command.ExecuteNonQuery();
+                        }
+                    /*}*/
                 }
             }
             catch (Exception ex)
@@ -340,7 +364,7 @@ namespace LudoHive
                 byte[] imgEmBytes = Referencias.ConvertBitmapImageToByteArray(atalhoParaAlteracao.getImgAtalho());
                 byte[] icnEmBytes = Referencias.ConvertBitmapImageToByteArray(atalhoParaAlteracao.getIconeAtalho());
 
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
 
@@ -375,7 +399,7 @@ namespace LudoHive
         {
             try
             {
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
                     string deleteCommand = "DELETE FROM AtalhosdeAplicativos WHERE id = @id";
@@ -394,29 +418,28 @@ namespace LudoHive
                 MessageBox.Show($"Erro ao excluir o atalho: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        public static ArrayList ConsultarIDs()
+        public static ArrayList ConsultarIDs(int pastaAtual = 1)
         {
             ArrayList ids = new ArrayList();
             try
             {
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
 
-                    string selectCommand = "SELECT Id FROM AtalhosdeAplicativos";
+                    string selectCommand = "SELECT Id FROM Pasta_Atalho INNER JOIN AtalhosdeAplicativos ON Pasta_Atalho.Id_Atalho = AtalhosdeAplicativos.Id WHERE Pasta_Atalho.Id_Pasta = @idPasta ORDER BY OrdemExibicao ASC";
                     using (var command = new SqliteCommand(selectCommand, connection))
-                    using (var reader = command.ExecuteReader())
                     {
-                        if (reader.HasRows)
+                        command.Parameters.AddWithValue("@idPasta", pastaAtual);
+                        using (var reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {
-                                int id = reader.GetInt32(0);
-                                ids.Add(id);
+                                ids.Add(reader.GetInt32(0));
                             }
                         }
+                        connection.Close();
                     }
-                    connection.Close();
                 }
             }
             catch (Exception ex)
@@ -425,19 +448,50 @@ namespace LudoHive
             }
             return ids;
         }
-        public static List<Atalhos> ConsultarAtalhos(ArrayList ids)
+        public static ArrayList ConsultarIDsFaltantes(int pastaAtual = 1)
+        {
+            ArrayList ids = new ArrayList();
+            try
+            {
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+                    string selectCommand = "SELECT Id FROM AtalhosdeAplicativos WHERE Id NOT IN ( SELECT Id_Atalho FROM Pasta_Atalho WHERE Id_Pasta = @idPasta ) ORDER BY Id ASC;";
+                    using (var command = new SqliteCommand(selectCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@idPasta", pastaAtual);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                ids.Add(reader.GetInt32(0));
+                            }
+                        }
+                        connection.Close();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao listar ids: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            return ids;
+        }
+        public static List<Atalhos> ConsultarAtalhos(ArrayList ids, int idPasta)
         {
             List<int> idsLista = ids.Cast<int>().ToList();
             List<Atalhos> atalhos = new List<Atalhos>();
             try
             {
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
                     string idParameters = string.Join(", ", idsLista.Select((_, index) => $"@id{index}"));
-                    string selectCommand = $@"SELECT Id, Nome, Caminho, Parametro, Imagem, Icon, DataUltimaSessao, TempoUltimaSessao FROM AtalhosdeAplicativos WHERE Id IN ({idParameters})";
+                    string procurarNaPasta = idPasta != 0 ? "pa.Id_Pasta = @pasta AND" : "";
+                    string selectCommand = $@"SELECT a.Id, pa.OrdemExibicao, a.Nome, a.Caminho, a.Parametro, a.Imagem, a.Icon, a.DataUltimaSessao, a.TempoUltimaSessao, pt.Nome FROM AtalhosdeAplicativos a JOIN Pasta_Atalho pa ON a.Id = pa.Id_Atalho INNER JOIN Pasta pt ON pa.Id_Pasta = pt.Id WHERE {procurarNaPasta} a.Id IN ({idParameters}) ORDER BY pa.OrdemExibicao ASC";
                     using (var command = new SqliteCommand(selectCommand, connection))
                     {
+                        if (idPasta != 0) { command.Parameters.AddWithValue("@pasta", idPasta); }
                         for (int i = 0; i < ids.Count; i++)
                         {
                             command.Parameters.AddWithValue($"@id{i}", ids[i]);
@@ -448,40 +502,44 @@ namespace LudoHive
                             {
                                 Atalhos atl = new Atalhos();
                                 int id = reader.GetInt32(0);
-                                string nome = reader.GetString(1);
-                                string caminho = reader.GetString(2);
-                                string parametro = reader.GetString(3);
+                                int ordemExibicao = reader.GetInt32(1);
+                                string nome = reader.GetString(2);
+                                string caminho = reader.GetString(3);
+                                string parametro = reader.GetString(4);
 
-                                long tamanhoBlobImg = reader.GetBytes(4, 0, null, 0, 0);
+                                long tamanhoBlobImg = reader.GetBytes(5, 0, null, 0, 0);
 
                                 byte[] bufferImg = new byte[tamanhoBlobImg];
-                                reader.GetBytes(4, 0, bufferImg, 0, (int)tamanhoBlobImg);
+                                reader.GetBytes(5, 0, bufferImg, 0, (int)tamanhoBlobImg);
 
                                 using (MemoryStream ms = new MemoryStream(bufferImg))
                                 {
                                     atl.setImgAtalho(Referencias.memoryStreamToBitmap(ms));
                                 }
 
-                                long tamanhoBlobIcon = reader.GetBytes(5, 0, null, 0, 0);
+                                long tamanhoBlobIcon = reader.GetBytes(6, 0, null, 0, 0);
 
                                 byte[] bufferIcon = new byte[tamanhoBlobIcon];
-                                reader.GetBytes(5, 0, bufferIcon, 0, (int)tamanhoBlobIcon);
+                                reader.GetBytes(6, 0, bufferIcon, 0, (int)tamanhoBlobIcon);
 
                                 using (MemoryStream ms = new MemoryStream(bufferIcon))
                                 {
                                     atl.setIconeAtalho(Referencias.memoryStreamToBitmap(ms));
                                 }
 
-                                string dataSessao = reader.GetString(6);
-                                string tempoSessao = reader.GetString(7);
+                                string dataSessao = reader.GetString(7);
+                                string tempoSessao = reader.GetString(8);
+                                string nomePasta = reader.GetString(9);
 
 
                                 atl.setIdAtalho(id);
+                                atl.setOrdemAtalho(ordemExibicao);
                                 atl.setNomeAtalho(nome);
                                 atl.setCaminhoAtalho(caminho);
                                 atl.setParametroAtalho(parametro);
                                 atl.setDataSessaoAtalho(dataSessao);
                                 atl.setTempoSessaoAtalho(tempoSessao);
+                                atl.setNomePasta(nomePasta);
 
                                 atalhos.Add(atl);
                             }
@@ -501,7 +559,7 @@ namespace LudoHive
             try
             {
                 string datasAcumuladas = "";
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
                     string selectCommand = "SELECT DataTodasSessoes FROM AtalhosdeAplicativos WHERE Id = @id";
@@ -543,7 +601,7 @@ namespace LudoHive
             try
             {
                 string horasNoBanco = "";
-                using (var connection = new SqliteConnection(Referencias.connectionString))
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
                 {
                     connection.Open();
                     string selectCommand = "SELECT TempoTodasSessoes FROM AtalhosdeAplicativos WHERE Id = @id";
@@ -582,14 +640,196 @@ namespace LudoHive
                 MessageBox.Show($"Erro ao mudar duracao da sessao: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        public static void AtualizarOrdem(List<int> idAtalhos)
+        {
+            try
+            {
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        using (var command = new SqliteCommand("UPDATE Pasta_Atalho SET OrdemExibicao = @ordem WHERE Id_Atalho = @id AND Id_Pasta = 1", connection, transaction))
+                        {
+                            for (int i = 0; i < idAtalhos.Count; i++)
+                            {
+                                command.Parameters.Clear();
+
+                                command.Parameters.AddWithValue($"@ordem", i + 1);
+                                command.Parameters.AddWithValue($"@id", idAtalhos[i]);
+
+                                command.ExecuteNonQuery();
+                            }
+
+                        }
+                        transaction.Commit();
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ordenar atalhos: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        public static List<Atalhos> ConsultarPasta()
+        {
+            List<Atalhos> atalhos = new List<Atalhos>();
+            try
+            {
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+
+                    string selectCommand = $@"SELECT Id, Nome, OrdemExibicao FROM Pasta ORDER BY OrdemExibicao ASC"; 
+                    using (var command = new SqliteCommand(selectCommand, connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                Atalhos att = new Atalhos();
+                                int id = reader.GetInt32(0);
+                                string nome = reader.GetString(1);
+                                int ordem = reader.GetInt32(2);
+
+                                att.setIdPasta(id);
+                                att.setNomePasta(nome);
+                                att.setOrdemPasta(ordem);
+
+                                atalhos.Add(att);
+                            }
+                        }
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao listar o atalho: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+            return atalhos;
+        }    
+        public static void AdicionarAtalhoNaPasta(List<int> idAtalhos, int idPasta)
+        {
+            try
+            {
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        string insertPastaAtalhoCommand = "INSERT INTO Pasta_Atalho (Id_Pasta, Id_Atalho, OrdemExibicao) SELECT @idPasta, @idAtalho, IFNULL(MAX(OrdemExibicao), 0) + 1 FROM Pasta_Atalho WHERE Id_Pasta = @idPasta";
+
+                        using (var command = new SqliteCommand(insertPastaAtalhoCommand, connection, transaction))
+                        {
+                            foreach (int idAtalho in idAtalhos)
+                            {
+                                command.Parameters.Clear();
+                                command.Parameters.AddWithValue("@idPasta", idPasta);
+                                command.Parameters.AddWithValue("@idAtalho", idAtalho);
+                                command.ExecuteNonQuery();
+                            }
+                        }
+                        transaction.Commit();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao adicionar o atalho na pasta: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        public static List<Atalhos> ConsultarPastas()
+        {
+            List<Atalhos> atalhos = new List<Atalhos>();
+            try
+            {
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+
+                    string selectCommand = $@"SELECT pa.Id_Pasta, pa.Id_Atalho, pa.OrdemExibicao, at.Nome, at.Caminho, at.Parametro, at.Imagem, at.Icon, at.DataUltimaSessao, at.TempoUltimaSessao, pt.Nome FROM Pasta_Atalho pa JOIN ( SELECT Id_Pasta, MIN(OrdemExibicao) AS OrdemMin FROM Pasta_Atalho GROUP BY Id_Pasta ) sub ON pa.Id_Pasta = sub.Id_Pasta AND pa.OrdemExibicao = sub.OrdemMin INNER JOIN AtalhosdeAplicativos at ON pa.Id_Atalho = at.Id INNER JOIN Pasta pt ON pa.Id_Pasta = pt.Id ORDER BY pt.OrdemExibicao ASC;";
+                    using (var command = new SqliteCommand(selectCommand, connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                Atalhos atl = new Atalhos();
+                                int idPasta = reader.GetInt32(0);
+                                int idAtalho = reader.GetInt32(1);
+                                int ordemExibicao = reader.GetInt32(2);
+                                string nome = reader.GetString(3);
+                                string caminho = reader.GetString(4);
+                                string parametro = reader.GetString(5);
+
+                                long tamanhoBlobImg = reader.GetBytes(6, 0, null, 0, 0);
+
+                                byte[] bufferImg = new byte[tamanhoBlobImg];
+                                reader.GetBytes(6, 0, bufferImg, 0, (int)tamanhoBlobImg);
+
+                                using (MemoryStream ms = new MemoryStream(bufferImg))
+                                {
+                                    atl.setImgAtalho(Referencias.memoryStreamToBitmap(ms));
+                                }
+
+                                long tamanhoBlobIcon = reader.GetBytes(7, 0, null, 0, 0);
+
+                                byte[] bufferIcon = new byte[tamanhoBlobIcon];
+                                reader.GetBytes(7, 0, bufferIcon, 0, (int)tamanhoBlobIcon);
+
+                                using (MemoryStream ms = new MemoryStream(bufferIcon))
+                                {
+                                    atl.setIconeAtalho(Referencias.memoryStreamToBitmap(ms));
+                                }
+
+                                string dataSessao = reader.GetString(8);
+                                string tempoSessao = reader.GetString(9);
+                                string nomePasta = reader.GetString(10);
+
+
+                                atl.setIdAtalho(idAtalho);
+                                atl.setIdPasta(idPasta);
+                                atl.setOrdemAtalho(ordemExibicao);
+                                atl.setNomeAtalho(nome);
+                                atl.setCaminhoAtalho(caminho);
+                                atl.setParametroAtalho(parametro);
+                                atl.setDataSessaoAtalho(dataSessao);
+                                atl.setTempoSessaoAtalho(tempoSessao);
+                                atl.setNomePasta(nomePasta);
+
+                                atalhos.Add(atl);
+                            }
+                        }
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao listar o atalho: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+            return atalhos;
+        }
 
         public int getIdAtalho()
         {
-            return this.id;
+            return id;
         }
         public void setIdAtalho(int novoId)
         {
-            this.id = novoId;
+            id = novoId;
+        }
+        public int getOrdemAtalho()
+        {
+            return ordemDaPastaAtual;
+        }
+        public void setOrdemAtalho(int ordem)
+        {
+            ordemDaPastaAtual = ordem;
         }
         public string getNomeAtalho()
         {
@@ -647,16 +887,44 @@ namespace LudoHive
         {
             this.tempoUltimaSessao = tempoUltimaSessao;
         }
+        
+        public int getIdPasta()
+        {
+            return idPasta;
+        }
+        public void setIdPasta(int idPasta)
+        {
+            this.idPasta = idPasta;
+        }
+        public string getNomePasta()
+        {
+            return nomePasta;
+        }
+        public void setNomePasta(string nomePasta)
+        {
+            this.nomePasta = nomePasta;
+        }
+        public int getOrdemPasta()
+        {
+            return ordemPasta;
+        }
+        public void setOrdemPasta(int ordemPasta)
+        {
+            this.ordemPasta = ordemPasta;
+        }
     }
 
     public class Referencias
     {
         public static string connectionString = $"Data Source={Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "applicationsShortcuts.db")}";
-        public static Uri imgPrincipal = new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Morgan.jpg"), UriKind.Absolute);
-        public static Uri controlOn = new Uri("pack://application:,,,/Assets/ControlON.png", UriKind.Absolute);
-        public static Uri picAppsHide = new Uri("pack://application:,,,/Assets/PicAppsHide.png", UriKind.Absolute);
-        public static Uri picAppsShow = new Uri("pack://application:,,,/Assets/PicAppsShow.png", UriKind.Absolute);
-        public static Uri vinheta = new Uri("pack://application:,,,/Assets/Vinheta.png", UriKind.Absolute);
+        public static Uri imgPrincipal = new Uri("pack://application:,,,/LudoHive;component/Assets/Morgan.jpg", UriKind.Absolute);
+        public static Uri controlOn = new Uri("pack://application:,,,/LudoHive;component/Assets/ControlON.png", UriKind.Absolute);
+        public static Uri picAppsHide = new Uri("pack://application:,,,/LudoHive;component/Assets/PicAppsHide.png", UriKind.Absolute);
+        public static Uri picAppsShow = new Uri("pack://application:,,,/LudoHive;component/Assets/PicAppsShow.png", UriKind.Absolute);
+        public static Uri vinheta = new Uri("pack://application:,,,/LudoHive;component/Assets/Vinheta.png", UriKind.Absolute);
+        public static Uri deletar = new Uri("pack://application:,,,/LudoHive;component/Assets/Deletar.png", UriKind.Absolute);
+        public static Uri expandir = new Uri("pack://application:,,,/LudoHive;component/Assets/Expandir.png", UriKind.Absolute);
+        public static Uri editar = new Uri("pack://application:,,,/LudoHive;component/Assets/Editar.png", UriKind.Absolute);
         public Referencias()
         {
 
@@ -692,13 +960,24 @@ namespace LudoHive
 
             return new TimeSpan(horas, minutos, 0);
         }
-
         public static string HorarioToString(TimeSpan tempo)
         {
             int horas = (int)tempo.TotalHours;
             int minutos = tempo.Minutes;
 
             return $"{horas}h{minutos:D2}m";
+        }
+        public static SqliteConnection CreateConnection(string connectionString)
+        {
+            var connection = new SqliteConnection(connectionString);
+            connection.Open();
+
+            using (var command = new SqliteCommand("PRAGMA foreign_keys = ON;", connection))
+            {
+                command.ExecuteNonQuery();
+            }
+
+            return connection;
         }
     }
     public class Controle{

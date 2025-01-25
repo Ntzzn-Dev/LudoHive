@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:LudoHive.Telas"
              xmlns:Controles="clr-namespace:LudoHive.Telas.Controles" x:Class="LudoHive.Telas.Configurar"
-             mc:Ignorable="d" d:DesignWidth="694" HorizontalAlignment="Left" VerticalAlignment="Top" Width="694" Height="377">
+             mc:Ignorable="d" d:DesignWidth="694" HorizontalAlignment="Left" VerticalAlignment="Top" Width="694" Height="782">
     <Grid Background="#FF2C2C2C">
         <Rectangle Height="49" Stroke="#FF151617" VerticalAlignment="Top" Fill="#FF151617"/>
         <Label x:Name="lblNomeAtalho_Copiar" Content="LudoHive - Configurações" Margin="10,6,0,0" VerticalAlignment="Top" Foreground="Silver" FontSize="25" HorizontalAlignment="Left" FontFamily="Segoe UI Black"/>
@@ -48,12 +48,16 @@
         <Grid x:Name="gdPage1">
             <Controles:TextboxCustom x:Name="txtbxNavegadorPadrao" Margin="21,110,221,0" CorBackground="#FF3B3A3A" CorForeground="Black" CorPlaceholder="DimGray" Fontsize="14" Placeholder="Caminho para o navegador que será aberto ao pesquisar online" Height="52" VerticalAlignment="Top"/>
             <Label x:Name="lblNavegadorPadrao" Content="Navegador Padrão" Margin="22,83,0,0" VerticalAlignment="Top" Foreground="Silver" FontWeight="Bold" FontSize="25" HorizontalAlignment="Left"/>
-            <Button x:Name="btnCancelarConfig" Content="Cancelar" HorizontalAlignment="Left" Margin="528,318,0,0" VerticalAlignment="Top" Background="#FF3B3A3A" BorderBrush="Black" Height="44" Width="144"/>
-            <Button x:Name="btnSalvarConfig" Content="Salvar" HorizontalAlignment="Left" Margin="379,318,0,0" VerticalAlignment="Top" Background="#FF3B3A3A" BorderBrush="Black" Height="44" Width="144"/>
-            <Button x:Name="btnRedefinirConfig" Content="Redefinir Configurações" HorizontalAlignment="Left" Margin="379,270,0,0" VerticalAlignment="Top" Background="#FF3B3A3A" BorderBrush="Black" Height="44" Width="293"/>
-            <Controles:ImgOnline x:Name="picOnImgAtalho" HorizontalAlignment="Left" Margin="22,174,0,0" VerticalAlignment="Top" Url="" TamanhoImg="344,193" CorFundo="#FF3A3A3A"/>
+            <Button x:Name="btnCancelarConfig" Content="Cancelar" HorizontalAlignment="Right" Margin="0,0,22,15" VerticalAlignment="Bottom" Background="#FF3B3A3A" BorderBrush="Black" Height="44" Width="144"/>
+            <Button x:Name="btnSalvarConfig" Content="Salvar" HorizontalAlignment="Right" Margin="0,0,171,15" VerticalAlignment="Bottom" Background="#FF3B3A3A" BorderBrush="Black" Height="44" Width="144"/>
+            <Button x:Name="btnRedefinirConfig" Content="Redefinir Configurações" HorizontalAlignment="Right" Margin="0,0,22,63" VerticalAlignment="Bottom" Background="#FF3B3A3A" BorderBrush="Black" Height="44" Width="293"/>
+            <Controles:ImgOnline x:Name="picOnImgAtalho" HorizontalAlignment="Left" Margin="22,0,0,10" VerticalAlignment="Bottom" Url="" TamanhoImg="344,193" CorFundo="#FF3A3A3A" Arredondado="-1"/>
             <Controles:ToggleButton x:Name="tgbtnFecharDpsPesquisa" HorizontalAlignment="Left" Margin="495,118,0,0" VerticalAlignment="Top" Height="44" Width="177" RenderTransformOrigin="0.5,0.5" CorCirculo="#FF7B7B7B" CorBorda="#FF373737" Arredondamento="12" Bordas="5" CorFundoFalse="#FF565050" CorFundoTrue="#FF545650"/>
             <Label x:Name="lblFecharNavegador" Content="Fechar após pesquisa" Margin="0,85,6,0" VerticalAlignment="Top" Foreground="#FF6D6D6D" FontWeight="Bold" HorizontalAlignment="Right" FontSize="20"/>
+            <Controles:Ordenar x:Name="ordAtalhosExibicao" HorizontalAlignment="Left" Margin="22,180,0,0" VerticalAlignment="Top" Height="376" Width="320" CorBackground="#FF272727" CorTitulo="#FF1D1D1D" CorTextoTitulo="Silver"/>
+            <Controles:Ordenar x:Name="ordPastas" HorizontalAlignment="Left" Margin="352,180,0,0" VerticalAlignment="Top" Height="376" Width="320" Titulo="Pastas" CorBackground="#FF272727" CorTitulo="#FF1D1D1D" CorTextoTitulo="Silver" Foreground="Black"/>
+            <Controles:ToggleButton x:Name="tgbtnAdicionarAtalhos" HorizontalAlignment="Left" Margin="283,182,0,0" VerticalAlignment="Top" Height="29" Width="57" CorBorda="#FF383838" CorCirculo="#FF7D7D7D" Bordas="2" Arredondamento="4"/>
+            <Label Content="Adicionar" HorizontalAlignment="Left" Margin="205,181,0,0" VerticalAlignment="Top" Foreground="Silver" FontWeight="Bold" FontSize="16"/>
         </Grid>
     </Grid>
 </UserControl>

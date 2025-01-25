@@ -31,7 +31,7 @@ namespace LudoHive.Telas
             btnSalvarAtalho.Click += (s, e) => SalvarAtalho();
             btnSalvarApp.Click += (s, e) => SalvarApp();
         }
-        public Cadastrar(int id, int tipoDeEdicao)
+        public Cadastrar(int id, int idPasta, int tipoDeEdicao)
         {
             InitializeComponent();
             DefinirGatilhos();
@@ -39,7 +39,7 @@ namespace LudoHive.Telas
             switch (tipoDeEdicao)
             {
                 case 0:
-                    DadosAtalho(id);
+                    DadosAtalho(id, idPasta);
                     TrocarPage(1);
                     if (idDeAlteracao != 0) { btnSalvarAtalho.Click += (s, e) => AlterarAtalho(); }
                     break;
@@ -57,8 +57,9 @@ namespace LudoHive.Telas
             atl.setNomeAtalho(txtbxNomeAtalho.Texto);
             atl.setCaminhoAtalho(txtbxCaminhoAtalho.Texto);
             atl.setParametroAtalho(txtbxParamAtalho.Texto);
-            atl.setImgAtalho(picOnImgAtalho.Imagem);
-            atl.setIconeAtalho(picOnIconAtalho.Imagem);
+            atl.setImgAtalho((BitmapImage)picOnImgAtalho.Imagem);
+            atl.setIconeAtalho((BitmapImage)picOnIconAtalho.Imagem);
+            atl.setIdPasta(1);
 
             Atalhos.Salvar(atl);
 
@@ -73,8 +74,8 @@ namespace LudoHive.Telas
             atl.setNomeAtalho(txtbxNomeAtalho.Texto);
             atl.setCaminhoAtalho(txtbxCaminhoAtalho.Texto);
             atl.setParametroAtalho(txtbxParamAtalho.Texto);
-            atl.setImgAtalho(picOnImgAtalho.Imagem); 
-            atl.setIconeAtalho(picOnIconAtalho.Imagem);
+            atl.setImgAtalho((BitmapImage)picOnImgAtalho.Imagem); 
+            atl.setIconeAtalho((BitmapImage)picOnIconAtalho.Imagem);
 
             Atalhos.Alterar(atl);
 
@@ -82,9 +83,9 @@ namespace LudoHive.Telas
 
             FecharCadastro();
         }
-        private void DadosAtalho(int id)
+        private void DadosAtalho(int id, int idPasta)
         {
-            Atalhos atalhoAtual = new Atalhos(id);
+            Atalhos atalhoAtual = new Atalhos(id, idPasta);
 
             idDeAlteracao = atalhoAtual.getIdAtalho();
             txtbxNomeAtalho.Texto = atalhoAtual.getNomeAtalho();
@@ -211,7 +212,7 @@ namespace LudoHive.Telas
             Aplicativos app = new Aplicativos();
             app.setNomeAplicativo(txtbxNomeApp.Texto);
             app.setCaminhoAplicativo(txtbxCaminhoApp.Texto);
-            app.setIconeAplicativo(picOnIconApp.Imagem);
+            app.setIconeAplicativo((BitmapImage)picOnIconApp.Imagem);
 
             Aplicativos.Salvar(app);
 
@@ -225,7 +226,7 @@ namespace LudoHive.Telas
             app.setIdAplicativo(idDeAlteracao);
             app.setNomeAplicativo(txtbxNomeApp.Texto);
             app.setCaminhoAplicativo(txtbxCaminhoApp.Texto);
-            app.setIconeAplicativo(picOnIconApp.Imagem);
+            app.setIconeAplicativo((BitmapImage)picOnIconApp.Imagem);
 
             Aplicativos.Alterar(app);
 
@@ -280,6 +281,7 @@ namespace LudoHive.Telas
 
             btnPageAtalho.Click += (s, e) => TrocarPage(1);
             btnPageApp.Click += (s, e) => TrocarPage(2);
+            btnPagePasta.Click += (s, e) => TrocarPage(3);
 
             txtbxImgAtalho.EnterPressed += (s, e) => picOnImgAtalho.Url = txtbxImgAtalho.Texto;
             txtbxIconAtalho.EnterPressed += (s, e) => picOnIconAtalho.Url = txtbxIconAtalho.Texto;
@@ -317,11 +319,14 @@ namespace LudoHive.Telas
 
             btnPageAtalho.Background = bsUnselect;
             btnPageApp.Background = bsUnselect;
+            btnPagePasta.Background = bsUnselect;
             btnPageAtalho.BorderBrush = bsUnselect;
             btnPageApp.BorderBrush = bsUnselect;
+            btnPagePasta.BorderBrush = bsUnselect;
 
             gdPage1.Visibility = Visibility.Collapsed;
             gdPage2.Visibility = Visibility.Collapsed;
+            gdPage3.Visibility = Visibility.Collapsed;
             switch (indice)
             {
                 case 1:
@@ -333,6 +338,11 @@ namespace LudoHive.Telas
                     btnPageApp.Background = bsSelect;
                     btnPageApp.BorderBrush = bsSelect;
                     gdPage2.Visibility = Visibility.Visible;
+                    break;
+                case 3:
+                    btnPagePasta.Background = bsSelect;
+                    btnPagePasta.BorderBrush = bsSelect;
+                    gdPage3.Visibility = Visibility.Visible;
                     break;
             }
         }

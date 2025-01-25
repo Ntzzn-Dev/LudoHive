@@ -32,6 +32,10 @@ public partial class MainWindow : Window
     private int idAtual = Properties.Settings.Default.IdUltimoJogo;
     private bool jogoEmUso = false;
     private bool trocandoImage = false;
+    // Pastas =========================
+    private Atalhos atalhoProxPasta;
+    private List<Atalhos> atalhosProximosPastas = new List<Atalhos>();
+    private int pastaAtual = Properties.Settings.Default.IdUltimaPasta;
     // Bandeja ========================
     //private NotifyIcon notifyIcon;
     private bool abrindoOJogo;
@@ -297,8 +301,14 @@ public partial class MainWindow : Window
             }
             else if (e.Key == System.Windows.Input.Key.Up)
             {
-                appsOcultos = false;
-                ToggleApps(null);
+                if (appsOcultos == true)
+                {
+                    TransicaoImagePasta();
+                }else
+                {
+                    appsOcultos = false;
+                    ToggleApps(null);
+                }
                 e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.Down)
@@ -489,7 +499,7 @@ public partial class MainWindow : Window
     }
     private void BtnEditarAplicativos(int id)
     {
-        Cadastrar cad = new Cadastrar(id, 1)
+        Cadastrar cad = new Cadastrar(id, pastaAtual, 1)
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
@@ -600,42 +610,21 @@ public partial class MainWindow : Window
                 }
             }
 
-            if (appsOcultos == false)
+            ThicknessAnimation animation = new ThicknessAnimation
             {
-                ThicknessAnimation animation = new ThicknessAnimation
-                {
-                    From = new Thickness(6, gdPnlApps.Margin.Top, 0, 0),
-                    To = new Thickness(0, -215, 0, 0),
-                    Duration = TimeSpan.FromSeconds(0.2),
-                    EasingFunction = new QuadraticEase()
-                };
+                From = new Thickness(6, gdPnlApps.Margin.Top, 0, 0),
+                To = appsOcultos ? new Thickness(0, 0, 0, 0) : new Thickness(0, -215, 0, 0),
+                Duration = TimeSpan.FromSeconds(0.2),
+                EasingFunction = new QuadraticEase()
+            };
 
-                animation.Completed += (s, e) =>
-                {
-                    picImgAppsOcultos.Source = new BitmapImage(Referencias.picAppsShow);
-                    appsOcultos = true;
-                };
-
-                gdPnlApps.BeginAnimation(FrameworkElement.MarginProperty, animation);
-            }
-            else
+            animation.Completed += (s, e) =>
             {
-                ThicknessAnimation animation = new ThicknessAnimation
-                {
-                    From = new Thickness(6, gdPnlApps.Margin.Top, 0, 0),
-                    To = new Thickness(0, 0, 0, 0),
-                    Duration = TimeSpan.FromSeconds(0.2),
-                    EasingFunction = new QuadraticEase()
-                };
+                picImgAppsOcultos.Source = new BitmapImage(Referencias.picAppsHide);
+                appsOcultos = appsOcultos ? false : true;
+            };
 
-                animation.Completed += (s, e) =>
-                {
-                    picImgAppsOcultos.Source = new BitmapImage(Referencias.picAppsHide);
-                    appsOcultos = false;
-                };
-
-                gdPnlApps.BeginAnimation(FrameworkElement.MarginProperty, animation);
-            }
+            gdPnlApps.BeginAnimation(FrameworkElement.MarginProperty, animation);
         });
     }
     private void Cadastrar()
@@ -656,12 +645,14 @@ public partial class MainWindow : Window
     }
     private void Configurar()
     {
-        Configurar config = new Configurar()
+        Configurar config = new Configurar(pastaAtual, atalhosProximos)
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Name = "config"
         };
+
+        config.OrdemAlterada += AtalhoPegarIds;
 
         mainGrid.RegisterName(config.Name, config);
 
@@ -670,7 +661,7 @@ public partial class MainWindow : Window
     }
     private void BtnEditarAtalho(object sender, EventArgs e)
     {
-        Cadastrar cadEdicao = new Cadastrar(idAtual, 0)
+        Cadastrar cadEdicao = new Cadastrar(idAtual, pastaAtual, 0)
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
@@ -983,13 +974,21 @@ public partial class MainWindow : Window
             PicImgAtalhoAtual.Source = atalhoAtual.getImgAtalho();
             PicDefinirCorDeFundo(atalhoAtual.getImgAtalho());
             PicTransitionsCriar();
-
-            TransicaoImageAtalho(false);
-            TransicaoImageAtalho(true);
         }
         PegarApps();
         InicializarControle();
         RegisterForDeviceNotifications();
+
+        atalhosProximosPastas = Atalhos.ConsultarPastas();
+
+        int proxPasta = pastaAtual;
+
+        int[] atalhosProximosPastasArray = atalhosProximosPastas.Select(a => a.getIdPasta()).ToArray();
+        proxPasta = AumentarIndice(proxPasta, atalhosProximosPastasArray);
+
+        atalhoProxPasta = atalhosProximosPastas.Find(atalho => atalho.getIdPasta() == proxPasta);
+
+        lblPastaAtual.Content = "Pasta: " + atalhoAtual.getNomePasta();
 
         var rectGeometry = new RectangleGeometry
         {
@@ -1023,9 +1022,11 @@ public partial class MainWindow : Window
 
     private void PicTransitionsCriar()
     {
-        int tamanhopic = (int)mainGrid.ActualWidth;
-        PicImgAtalhoProx.Margin = new Thickness(-tamanhopic, 0, tamanhopic, 0);
-        PicImgAtalhoPrev.Margin = new Thickness(tamanhopic, 0, -tamanhopic, 0);
+        int widthpic = (int)mainGrid.ActualWidth;
+        int heightpic = (int)mainGrid.ActualHeight;
+        PicImgAtalhoProx.Margin = new Thickness(-widthpic, 0, widthpic, 0);
+        PicImgAtalhoPrev.Margin = new Thickness(widthpic, 0, -widthpic, 0);
+        PicImgAtalhoNovaPasta.Margin = new Thickness(0, heightpic, 0, -heightpic);
     }
     private void TransicaoImageAtalho(bool dir)
     {
@@ -1036,8 +1037,8 @@ public partial class MainWindow : Window
             if (dir) { img = PicImgAtalhoProx; num = num * -1; }
             if (dir == false) { img = PicImgAtalhoPrev; }
 
-            Atalhos atalhoAtualL = atalhosProximos.Find(atalho => atalho.getIdAtalho() == idAtual + num);
-            if (atalhoAtualL != null) { img.Source = atalhoAtualL.getImgAtalho(); }
+            Atalhos atalhoProximo = atalhosProximos.Find(atalho => atalho.getOrdemAtalho() == atalhoAtual.getOrdemAtalho() + num);
+            if (atalhoProximo != null) { img.Source = atalhoProximo.getImgAtalho(); }
 
             ThicknessAnimation animation = new ThicknessAnimation
             {
@@ -1050,6 +1051,28 @@ public partial class MainWindow : Window
             animation.Completed += (s, e) => RecarregarTransicaoImageAtalho(img, num);
 
             img.BeginAnimation(FrameworkElement.MarginProperty, animation);
+        }));
+    }
+    private void TransicaoImagePasta()
+    {
+        this.Dispatcher.Invoke(new Action(() =>
+        {
+            Apresentacao(atalhoProxPasta.getNomePasta(), 99);
+            lblPastaAtual.Content = "Pasta: " + atalhoProxPasta.getNomePasta();
+
+            if (atalhoProxPasta != null) { PicImgAtalhoNovaPasta.Source = atalhoProxPasta.getImgAtalho(); }
+
+            ThicknessAnimation animation = new ThicknessAnimation
+            {
+                From = new Thickness(0, PicImgAtalhoNovaPasta.Margin.Top, 0, PicImgAtalhoNovaPasta.Margin.Bottom),
+                To = new Thickness(0, 0, 0, 0),
+                Duration = TimeSpan.FromSeconds(0.5),
+                EasingFunction = new QuadraticEase()
+            };
+
+            animation.Completed += (s, e) => RecarregarTransicaoImagePasta(PicImgAtalhoNovaPasta);
+
+            PicImgAtalhoNovaPasta.BeginAnimation(FrameworkElement.MarginProperty, animation);
         }));
     }
     private void RecarregarTransicaoImageAtalho(Image img, int num)
@@ -1065,7 +1088,60 @@ public partial class MainWindow : Window
 
         Atalhos atalhoAtualL = atalhosProximos.Find(atalho => atalho.getIdAtalho() == idAtual + num);
         if (atalhoAtualL != null) { img.Source = atalhoAtualL.getImgAtalho(); }
+
         trocandoImage = false;
+    }
+    private void RecarregarTransicaoImagePasta(Image img)
+    {
+        atalhoAtual = atalhoProxPasta;
+
+        idAtual = atalhoAtual.getIdAtalho();
+
+        Properties.Settings.Default.IdUltimoJogo = idAtual;
+        Properties.Settings.Default.Save();
+
+        int[] atalhosProximosPastasArray = atalhosProximosPastas.Select(a => a.getIdPasta()).ToArray();
+
+        pastaAtual = AumentarIndice(pastaAtual, atalhosProximosPastasArray); 
+        int proxPasta = pastaAtual;
+        proxPasta = AumentarIndice(proxPasta, atalhosProximosPastasArray);
+
+        Properties.Settings.Default.IdUltimaPasta = pastaAtual;
+        Properties.Settings.Default.Save();
+
+        atalhoProxPasta = atalhosProximosPastas.Find(atalho => atalho.getIdPasta() == proxPasta);
+
+        AtalhoPegarIds();
+
+        trocandoImage = false;
+
+        img.BeginAnimation(FrameworkElement.MarginProperty, null);
+
+        int tamanhopic = (int)mainGrid.ActualHeight;
+
+        PicImgAtalhoAtual.Source = atalhoAtual.getImgAtalho();
+
+        img.Margin = new Thickness(0, tamanhopic, 0, -tamanhopic);
+
+        Apresentacao();
+    }
+    private int AumentarIndice(int i, int[] a)
+    {
+        if (Array.IndexOf(a, i) == a.Length - 1)
+        {
+            i = a[0];
+        }
+        else
+        {
+            i += 1;
+        }
+        return i;
+    }
+    private void Apresentacao (string nome = "", int indice = -1)
+    {
+        lblApresentacao.Content = nome;
+        Panel.SetZIndex(recApresentacao, indice);
+        Panel.SetZIndex(lblApresentacao, indice);
     }
     private void BtnDeletarAtalho(object sender, EventArgs e)
     {
@@ -1126,7 +1202,7 @@ public partial class MainWindow : Window
         ids.Clear();
         try
         {
-            ids = Atalhos.ConsultarIDs();
+            ids = Atalhos.ConsultarIDs(pastaAtual);
         }
         catch (Exception ex)
         {
@@ -1136,7 +1212,7 @@ public partial class MainWindow : Window
         if (ids.Count > 0)
         {
             if (!ids.Contains(idAtual)) { idAtual = (int)ids[0]; }
-            atalhosProximos = Atalhos.ConsultarAtalhos(ids);
+            atalhosProximos = Atalhos.ConsultarAtalhos(ids, pastaAtual);
             AtalhoListar(idAtual);
         }
         else
@@ -1282,8 +1358,8 @@ public partial class MainWindow : Window
     }
     private void MoveRight() { if (appsOcultos) { GameNext(); } else { appAtual += 1; if (appAtual >= appCount) { appAtual = appCount - 1; } VisualizarEscolhaViaControle(); } }
     private void MoveLeft() { if (appsOcultos) { GamePrev(); } else { appAtual -= 1; if (appAtual <= 0) { appAtual = 0; } VisualizarEscolhaViaControle(); } }
-    private void MoveUp() { appsOcultos = true; appsOcultos = true; ToggleApps(null); }
-    private void MoveDown() { appsOcultos = false; appsOcultos = false; ToggleApps(null); }
+    private void MoveDown() { if (appsOcultos == true) { TransicaoImagePasta(); } else { appsOcultos = false; ToggleApps(null); } }
+    private void MoveUp() { appsOcultos = true; ToggleApps(null); }
     private void BtnX() { if (appsOcultos) { if (abrindoOJogo == false) { BtnAbrirAtalho(null, null); } } else { BtnAbrirAplicativos(null, EventArgs.Empty); } }
     private void BtnO() { this.Dispatcher.Invoke(() => { this.Close(); }); }
 }

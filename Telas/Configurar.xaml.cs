@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
+using LudoHive.Telas.Controles;
 
 namespace LudoHive.Telas
 {
@@ -21,13 +22,22 @@ namespace LudoHive.Telas
         // Valores Configuracoes ======
         private string navegadorEmUso = Properties.Settings.Default.NavegadorEmUso;
         private bool fecharNavegador = Properties.Settings.Default.FecharNavegador;
-        public Configurar()
+        private int idPastaAtual;
+        private List<int> idsAtalhosParaPasta = new List<int>();
+        public event Action OrdemAlterada;
+        public Configurar(int idPasta = 1, List<Atalhos> atts = null)
         {
             InitializeComponent();
 
             CarregarConfigs();
 
             DefinirGatilhos();
+
+            idPastaAtual = idPasta;
+
+            AlterarPastaOrd(idPastaAtual, atts);
+
+            CriarPastaOrd();
         }
         private void DefinirGatilhos()
         {
@@ -37,9 +47,98 @@ namespace LudoHive.Telas
             tgbtnFecharDpsPesquisa.ValorAlternado += (fechar) => {
                 fecharNavegador = fechar;
             };
+            tgbtnAdicionarAtalhos.ValorAlternado += (adicionar) => {
+                CriarOrd(idPastaAtual);
+            };
+
             btnSalvarConfig.Click += (s, e) => SalvarConfiguracoes();
             btnCancelarConfig.Click += (s, e) => FecharCadastro();
             btnRedefinirConfig.Click += (s, e) => RedefinirConfiguracoes();
+
+            ordAtalhosExibicao.ListarOrdem += BtnSalvarOrdAtalhos;
+            ordAtalhosExibicao.ElementoClicado += SelecionarNovos;
+            ordPastas.ElementoClicado += (idPasta, ordemPasta, lbl) => AlterarPastaOrd(idPasta);
+        }
+        private void BtnSalvarOrdAtalhos(List<int> listaOrdem)
+        {
+            if (tgbtnAdicionarAtalhos.IsTrue) 
+            {
+                if(idsAtalhosParaPasta.Count > 0)
+                {
+                    Atalhos.AdicionarAtalhoNaPasta(idsAtalhosParaPasta, idPastaAtual);
+                    CriarOrd(idPastaAtual);
+                    idsAtalhosParaPasta.Clear();
+                    OrdemAlterada?.Invoke();
+                }
+            }
+            else
+            {
+                Atalhos.AtualizarOrdem(listaOrdem);
+                OrdemAlterada?.Invoke();
+            }
+        }
+        private void SelecionarNovos(int idAtalho, int ordemAtalho, LabelCRUD lbl)
+        {
+            if (tgbtnAdicionarAtalhos.IsTrue)
+            {
+                //Retirar
+                if (idsAtalhosParaPasta.Contains(idAtalho))
+                {
+                    idsAtalhosParaPasta.Remove(idAtalho);
+                    lbl.CorBackGround = Color.FromArgb(255, 107, 107, 107);
+                }
+                //Adicionar
+                else
+                {
+                    idsAtalhosParaPasta.Add(idAtalho);
+                    lbl.CorBackGround = Color.FromArgb(255, 84, 86, 80);
+                }
+            }
+        }
+        private void CriarOrd(int idPasta = 1, List<Atalhos> atts = null)
+        {
+            ordAtalhosExibicao.Atts = new List<Elementos>();
+
+            List<Elementos> elms = new List<Elementos>();
+
+            if (atts == null) atts = Atalhos.ConsultarAtalhos(tgbtnAdicionarAtalhos.IsTrue ? Atalhos.ConsultarIDsFaltantes(idPasta): Atalhos.ConsultarIDs(idPasta), tgbtnAdicionarAtalhos.IsTrue ? 0 : idPasta);
+
+            foreach (Atalhos att in atts)
+            {
+                Elementos elm = new Elementos()
+                {
+                    Nome = att.getNomeAtalho(),
+                    Id = att.getIdAtalho(),
+                    Icone = att.getIconeAtalho(),
+                    Ordem = att.getOrdemAtalho()
+                };
+                elms.Add(elm);
+            }
+            ordAtalhosExibicao.Atts = elms;
+        }
+        private void AlterarPastaOrd(int idPasta = 1, List<Atalhos> atts = null)
+        {
+            idPastaAtual = idPasta;
+            CriarOrd(idPasta, atts);
+            ordAtalhosExibicao.Titulo = "Principal";
+        }
+        private void CriarPastaOrd()
+        {
+            List<Elementos> elms = new List<Elementos>();
+
+            List<Atalhos> pastas = Atalhos.ConsultarPasta();
+
+            foreach (Atalhos pst in pastas)
+            {
+                Elementos elm = new Elementos()
+                {
+                    Nome = pst.getNomePasta(),
+                    Id = pst.getIdPasta(),
+                    Ordem = pst.getOrdemPasta()
+                };
+                elms.Add(elm);
+            }
+            ordPastas.Atts = elms;
         }
         private void CarregarConfigs()
         {

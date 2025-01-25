@@ -28,6 +28,7 @@ namespace LudoHive.Telas.Controles
         private Size _tamanhoImg;
         private string _url;
         private bool _eIcone;
+        private int _arredondado;
         private BitmapImage _imagem;
         public Action Falha; 
         public Action ImgCarregada; 
@@ -72,13 +73,27 @@ namespace LudoHive.Telas.Controles
                 _eIcone = value;
             }
         }
-        public BitmapImage Imagem
+        public int Arredondado
         {
-            get => _imagem;
+            get => _arredondado;
             set
             {
-                _imagem = value;
-                img.Source = _imagem;
+                _arredondado = value;
+                CriarClip(img, img.ActualHeight, img.ActualWidth, Arredondado);
+                CriarClip(fundoImg, fundoImg.ActualHeight, fundoImg.ActualWidth, Arredondado);
+            }
+        }
+        public ImageSource Imagem
+        {
+            get => img.Source; 
+            set
+            {
+                img.Source = value;
+
+                if (value is BitmapImage bitmapImage)
+                {
+                    _imagem = bitmapImage;
+                }
             }
         }
         public ImgOnline()
@@ -86,6 +101,11 @@ namespace LudoHive.Telas.Controles
             InitializeComponent();
             _tamanhoImg = new Size(100, 100);
             Imagem = new BitmapImage(Referencias.imgPrincipal);
+            img.SizeChanged += (s, e) =>
+            {
+                CriarClip(img, img.ActualHeight, img.ActualWidth, Arredondado);
+                CriarClip(fundoImg, fundoImg.ActualHeight, fundoImg.ActualWidth, Arredondado);
+            };
         }
         private async Task BaixarImgs(string pathToImg)
         {
@@ -269,6 +289,54 @@ namespace LudoHive.Telas.Controles
                     }
                 }
             }
+        }
+        private void CriarClip(UIElement elemento, double height, double width, double arqueamento, bool arrLT = true, bool arrRT = true, bool arrRB = true, bool arrLB = true)
+        {
+            if (arqueamento > height / 2 || arqueamento == 0)
+            {
+                arqueamento = height / 2;
+            }
+            double distancia = arqueamento / 2;
+            double primeiraMetadeWidth = arqueamento;
+            double segundaMetadeWidth = width - arqueamento;
+            double primeiraMetadeHeight = arqueamento;
+            double segundaMetadeHeight = height - arqueamento;
+
+            PathGeometry pathGeometry = new PathGeometry();
+            PathFigure pathFigure = new PathFigure();
+            pathFigure.StartPoint = new Point(primeiraMetadeWidth, 0);
+
+            pathFigure.Segments.Add(new LineSegment(new Point(segundaMetadeWidth, 0), true));
+
+            if (arrRT)
+                pathFigure.Segments.Add(new BezierSegment(new Point(segundaMetadeWidth + distancia, 0), new Point(width, primeiraMetadeHeight - distancia), new Point(width, primeiraMetadeHeight), true));
+            else
+                pathFigure.Segments.Add(new BezierSegment(new Point(width, 0), new Point(width, 0), new Point(width, 0), true));
+
+            pathFigure.Segments.Add(new LineSegment(new Point(width, segundaMetadeHeight), true));
+
+            if (arrRB)
+                pathFigure.Segments.Add(new BezierSegment(new Point(width, segundaMetadeHeight + distancia), new Point(segundaMetadeWidth + distancia, height), new Point(segundaMetadeWidth, height), true));
+            else
+                pathFigure.Segments.Add(new BezierSegment(new Point(width, height), new Point(width, height), new Point(width, height), true));
+
+            pathFigure.Segments.Add(new LineSegment(new Point(primeiraMetadeWidth, height), true));
+
+            if (arrLB)
+                pathFigure.Segments.Add(new BezierSegment(new Point(primeiraMetadeWidth - distancia, height), new Point(0, segundaMetadeHeight + distancia), new Point(0, segundaMetadeHeight), true));
+            else
+                pathFigure.Segments.Add(new BezierSegment(new Point(0, height), new Point(0, height), new Point(0, height), true));
+
+            pathFigure.Segments.Add(new LineSegment(new Point(0, primeiraMetadeHeight), true));
+
+            if (arrLT)
+                pathFigure.Segments.Add(new BezierSegment(new Point(0, primeiraMetadeHeight - distancia), new Point(primeiraMetadeHeight - distancia, 0), new Point(primeiraMetadeWidth, 0), true));
+            else
+                pathFigure.Segments.Add(new BezierSegment(new Point(0, 0), new Point(0, 0), new Point(0, 0), true));
+
+            pathGeometry.Figures.Add(pathFigure);
+
+            elemento.Clip = pathGeometry;
         }
     }
 }

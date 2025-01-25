@@ -16,6 +16,12 @@
     <Compile Update="Telas\Controles\ImgOnline.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Telas\Controles\LabelCRUD.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Telas\Controles\Ordenar.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Telas\Controles\Popup.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -43,6 +49,12 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Telas\Controles\ImgOnline.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Telas\Controles\LabelCRUD.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Telas\Controles\Ordenar.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Telas\Controles\Popup.xaml">

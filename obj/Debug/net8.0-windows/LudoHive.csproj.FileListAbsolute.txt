@@ -69,9 +69,12 @@ H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\LudoHive.genruntim
 H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\ref\LudoHive.dll
 H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\TitleBar.g.cs
 H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\TitleBar.baml
-H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\Assets\Morgan.jpg
 H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\LudoHive.dll.config
 H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Configurar.g.cs
 H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Configurar.baml
 H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\ToggleButton.g.cs
 H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\ToggleButton.baml
+H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\LabelCRUD.g.cs
+H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\Ordenar.g.cs
+H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\LabelCRUD.baml
+H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\Ordenar.baml
