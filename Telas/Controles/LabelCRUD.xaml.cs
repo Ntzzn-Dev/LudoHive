@@ -43,7 +43,8 @@ namespace LudoHive.Telas.Controles
         public event EventHandler ImgPrincipalClick;
         public event EventHandler ImgEditarClick;
         public event EventHandler ImgDeletarClick;
-        public event EventHandler ImgExpandirClick;
+        public event EventHandler ImgExpandirClick; 
+        public event Action<Color> CorFundoAlterado; 
         public bool WithImg
         {
             get => _withImg;
@@ -155,6 +156,20 @@ namespace LudoHive.Telas.Controles
             }
         }
         public Color CorBackGround
+        {
+            get => _corBackground;
+            set
+            {
+                _corBackground = value;
+                CorFundoAlterado?.Invoke(_corBackground);
+                gdLabelCRUD.Background = new SolidColorBrush(_corBackground);
+                Color darkerColor = PicDarkenColor(CorBackGround, DiferencaCor);
+                picDelLabel.CorFundo = darkerColor;
+                picEditLabel.CorFundo = darkerColor;
+                picExpLabel.CorFundo = darkerColor;
+            }
+        }
+        public Color CorFundo
         {
             get => _corBackground;
             set

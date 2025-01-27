@@ -23,8 +23,12 @@ namespace LudoHive.Telas
         private string navegadorEmUso = Properties.Settings.Default.NavegadorEmUso;
         private bool fecharNavegador = Properties.Settings.Default.FecharNavegador;
         private int idPastaAtual;
+        private int idPastaEdit;
         private List<int> idsAtalhosParaPasta = new List<int>();
-        public event Action OrdemAlterada;
+        public event Action OrdemAlterada; 
+        public event Action AtalhoAdicionado;
+        public event Action PastaRenomeada;
+        public event Action FimConfiguracao;
         public Configurar(int idPasta = 1, List<Atalhos> atts = null)
         {
             InitializeComponent();
@@ -49,6 +53,7 @@ namespace LudoHive.Telas
             };
             tgbtnAdicionarAtalhos.ValorAlternado += (adicionar) => {
                 CriarOrd(idPastaAtual);
+                idsAtalhosParaPasta.Clear();
             };
 
             btnSalvarConfig.Click += (s, e) => SalvarConfiguracoes();
@@ -57,7 +62,13 @@ namespace LudoHive.Telas
 
             ordAtalhosExibicao.ListarOrdem += BtnSalvarOrdAtalhos;
             ordAtalhosExibicao.ElementoClicado += SelecionarNovos;
-            ordPastas.ElementoClicado += (idPasta, ordemPasta, lbl) => AlterarPastaOrd(idPasta);
+
+            ordPastas.ElementoClicado += SelecionarPasta;
+            ordPastas.DeleteElementoClicado += DeletarPasta;
+            ordPastas.EditElementoClicado += (id, ord, lbl) => { idPastaEdit = id; NomearPasta(false); }; //False = Editar, True = Criar
+            btnAddPasta.Click += (s, e) => NomearPasta(true);
+
+            ordPastas.Loaded += (s,e) => ordPastas.Labels.Find(att => att.Id == idPastaAtual).CorBackGround = Color.FromArgb(255, 84, 84, 84); ;
         }
         private void BtnSalvarOrdAtalhos(List<int> listaOrdem)
         {
@@ -69,11 +80,24 @@ namespace LudoHive.Telas
                     CriarOrd(idPastaAtual);
                     idsAtalhosParaPasta.Clear();
                     OrdemAlterada?.Invoke();
+
+                    AtalhoAdicionado?.Invoke();
                 }
             }
             else
             {
-                Atalhos.AtualizarOrdem(listaOrdem);
+                if (idsAtalhosParaPasta.Count > 0)
+                {
+                    Atalhos.RetirarAtalhoDaPasta(idsAtalhosParaPasta, idPastaAtual);
+                    CriarOrd(idPastaAtual);
+
+                    //impede que a ordem seja redefinida contando itens que serão retirados da pasta
+                    listaOrdem = listaOrdem.Except(idsAtalhosParaPasta).ToList();
+
+                    idsAtalhosParaPasta.Clear();
+                }
+                Atalhos.AtualizarOrdem(listaOrdem, idPastaAtual);
+
                 OrdemAlterada?.Invoke();
             }
         }
@@ -85,7 +109,7 @@ namespace LudoHive.Telas
                 if (idsAtalhosParaPasta.Contains(idAtalho))
                 {
                     idsAtalhosParaPasta.Remove(idAtalho);
-                    lbl.CorBackGround = Color.FromArgb(255, 107, 107, 107);
+                    lbl.CorBackGround = Color.FromArgb(255, 39, 39, 39);
                 }
                 //Adicionar
                 else
@@ -93,6 +117,96 @@ namespace LudoHive.Telas
                     idsAtalhosParaPasta.Add(idAtalho);
                     lbl.CorBackGround = Color.FromArgb(255, 84, 86, 80);
                 }
+            } 
+            else
+            {
+                //Retirar
+                if (idsAtalhosParaPasta.Contains(idAtalho))
+                {
+                    idsAtalhosParaPasta.Remove(idAtalho);
+                    lbl.CorBackGround = Color.FromArgb(255, 39, 39, 39);
+                }
+                //Adicionar
+                else
+                {
+                    idsAtalhosParaPasta.Add(idAtalho);
+                    lbl.CorBackGround = Color.FromArgb(255, 86, 80, 80);
+                }
+            }
+        }
+        private void SelecionarPasta(int idPasta, int ordemPasta, LabelCRUD lbl)
+        {
+            if (idPastaAtual != idPasta)
+            {
+                foreach (LabelCRUD lb in ordPastas.Labels)
+                {
+                    lb.CorFundo = Color.FromArgb(255, 39, 39, 39);
+                }
+                lbl.CorBackGround = Color.FromArgb(255, 84, 84, 84);
+
+                AlterarPastaOrd(idPasta);
+            }
+        }
+        private void DeletarPasta(int idPasta, int ordemPasta, LabelCRUD lbl)
+        {
+            ordPastas.LabelRetirar(lbl);
+            Atalhos.DeletarPasta(idPasta);
+        }
+        private void EditarPasta(object sender, EventArgs e)
+        {
+            txtbxNomePasta.Visibility = Visibility.Collapsed;
+
+            if (!string.IsNullOrEmpty(txtbxNomePasta.Texto)) 
+            {
+                Atalhos pasta = new Atalhos();
+                pasta.setNomePasta(txtbxNomePasta.Texto);
+                pasta.setIdPasta(idPastaEdit);
+
+                Atalhos.AlterarPasta(pasta);
+
+                txtbxNomePasta.Texto = "";
+
+                txtbxNomePasta.EnterPressed -= CriarPasta;
+                txtbxNomePasta.EnterPressed -= EditarPasta;
+
+                PastaRenomeada?.Invoke();
+
+                CriarPastaOrd();
+            }
+        }
+        private void CriarPasta(object sender, EventArgs e)
+        {
+            txtbxNomePasta.Visibility = Visibility.Collapsed;
+
+            if (!string.IsNullOrEmpty(txtbxNomePasta.Texto))
+            {
+                Atalhos pasta = new Atalhos();
+                pasta.setNomePasta(txtbxNomePasta.Texto);
+
+                Atalhos.SalvarPasta(pasta);
+
+                txtbxNomePasta.Texto = "";
+
+                txtbxNomePasta.EnterPressed -= CriarPasta;
+                txtbxNomePasta.EnterPressed -= EditarPasta;
+
+                CriarPastaOrd();
+            }
+        }
+        private void NomearPasta(bool criar)
+        {
+            if (txtbxNomePasta.Visibility == Visibility.Collapsed)
+            {
+                txtbxNomePasta.Visibility = Visibility.Visible;
+                txtbxNomePasta.SetFocus();
+
+                txtbxNomePasta.EnterPressed += criar ? CriarPasta : EditarPasta;
+            } 
+            else
+            {
+                txtbxNomePasta.Visibility = Visibility.Collapsed;
+
+                txtbxNomePasta.EnterPressed -= criar ? CriarPasta : EditarPasta;
             }
         }
         private void CriarOrd(int idPasta = 1, List<Atalhos> atts = null)
@@ -116,11 +230,10 @@ namespace LudoHive.Telas
             }
             ordAtalhosExibicao.Atts = elms;
         }
-        private void AlterarPastaOrd(int idPasta = 1, List<Atalhos> atts = null)
+        private void AlterarPastaOrd(int idPasta, List<Atalhos> atts = null)
         {
             idPastaAtual = idPasta;
             CriarOrd(idPasta, atts);
-            ordAtalhosExibicao.Titulo = "Principal";
         }
         private void CriarPastaOrd()
         {
@@ -166,6 +279,7 @@ namespace LudoHive.Telas
             {
                 grid.Children.Remove(this);
                 grid.UnregisterName(this.Name);
+                FimConfiguracao?.Invoke();
             }
         }
         private string GetDefaultBrowserPath()

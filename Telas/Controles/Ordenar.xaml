@@ -5,12 +5,236 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:LudoHive.Telas.Controles"
              mc:Ignorable="d" 
-             d:DesignHeight="450" Width="442">
+             d:DesignHeight="450" Width="426">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="FundoScroll" Color="#FF737373" />
+        
+        <LinearGradientBrush x:Key="PressedBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientBrush.GradientStops>
+                <GradientStopCollection>
+                    <GradientStop Color="#BBB" Offset="0.0"/>
+                    <GradientStop Color="#EEE" Offset="0.1"/>
+                    <GradientStop Color="#EEE" Offset="0.9"/>
+                    <GradientStop Color="#FFF" Offset="1.0"/>
+                </GradientStopCollection>
+            </GradientBrush.GradientStops>
+        </LinearGradientBrush>
+
+        <SolidColorBrush x:Key="DisabledForegroundBrush" Color="#888" />
+
+        <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#EEE" />
+
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FFF" />
+
+        <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#DDD" />
+
+        <!-- Border Brushes -->
+        <LinearGradientBrush x:Key="HorizontalNormalBorderBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientBrush.GradientStops>
+                <GradientStopCollection>
+                    <GradientStop Color="#CCC" Offset="0.0"/>
+                    <GradientStop Color="#444" Offset="1.0"/>
+                </GradientStopCollection>
+            </GradientBrush.GradientStops>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="DefaultedBorderBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientBrush.GradientStops>
+                <GradientStopCollection>
+                    <GradientStop Color="#777" Offset="0.0"/>
+                    <GradientStop Color="#000" Offset="1.0"/>
+                </GradientStopCollection>
+            </GradientBrush.GradientStops>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="PressedBorderBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientBrush.GradientStops>
+                <GradientStopCollection>
+                    <GradientStop Color="#444" Offset="0.0"/>
+                    <GradientStop Color="#888" Offset="1.0"/>
+                </GradientStopCollection>
+            </GradientBrush.GradientStops>
+        </LinearGradientBrush>
+
+        <SolidColorBrush x:Key="DisabledBorderBrush" Color="#AAA" />
+
+        <SolidColorBrush x:Key="SolidBorderBrush" Color="#888" />
+
+        <SolidColorBrush x:Key="LightBorderBrush" Color="#AAA" />
+
+        <!-- Miscellaneous Brushes -->
+        <SolidColorBrush x:Key="GlyphBrush" Color="#444" />
+
+        <SolidColorBrush x:Key="LightColorBrush" Color="#DDD" />
+
+        <!-- Botao Descer -->
+        <Style x:Key="ScrollBarLineButtonDown" TargetType="{x:Type RepeatButton}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="Focusable" Value="false"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type RepeatButton}">
+                        <Border Name="Border" Margin="1" CornerRadius="2" 
+              Background="DimGray"
+              BorderBrush="#FF333333"
+              BorderThickness="1">
+                            <Path HorizontalAlignment="Center" VerticalAlignment="Center" Fill="White" Data="M 0,0 L 1,0 L 7.5,4 L 14,0 L 15,0 L 15,1 L 7.5,5 L 0,1 Z" Width="15" Height="5" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="true">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource PressedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Foreground" Value="{StaticResource DisabledForegroundBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Botao Subir -->
+        <Style x:Key="ScrollBarLineButtonUp" TargetType="{x:Type RepeatButton}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="Focusable" Value="false"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type RepeatButton}">
+                        <Border Name="Border" Margin="1" CornerRadius="1"
+                      Background="DimGray"
+                      BorderBrush="#FF333333"
+                      BorderThickness="1">
+                            <Path HorizontalAlignment="Center" VerticalAlignment="Center" Fill="White" Data="M 0,5 L 0,4 L 7.5,0 L 15,4 L 15,5 L 14,5 L 7.5,1 L 1,5 Z" Width="15" Height="5" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="true">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource PressedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Foreground" Value="{StaticResource DisabledForegroundBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Fundo Scroll -->
+        <Style x:Key="ScrollBarPageButton" TargetType="{x:Type RepeatButton}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="IsTabStop" Value="false"/>
+            <Setter Property="Focusable" Value="false"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type RepeatButton}">
+                        <Border Background="{StaticResource FundoScroll}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Thumb -->
+        <Style x:Key="ScrollBarThumb" TargetType="{x:Type Thumb}">
+            <Setter Property="SnapsToDevicePixels" Value="true"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="IsTabStop" Value="false"/>
+            <Setter Property="Focusable" Value="false"/>
+            <Setter Property="Height" Value="100"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Border 
+                          CornerRadius="1" 
+                          Background="#FF5A5A5A"
+                          BorderBrush="#FF373737"
+                          BorderThickness="1" 
+                          Height="{TemplateBinding Height}" SnapsToDevicePixels="True" 
+                            />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <ControlTemplate x:Key="VerticalScrollBar" TargetType="{x:Type ScrollBar}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition MaxHeight="18"/>
+                    <RowDefinition Height="0.00001*"/>
+                    <RowDefinition MaxHeight="18"/>
+                </Grid.RowDefinitions>
+                <Border
+                    Grid.RowSpan="3"
+                    CornerRadius="2" 
+                    Background="{StaticResource FundoScroll}" />
+                <!-- Cor Fundo Elementos -->
+
+                <!-- Botão de Subir -->
+                <!-- Merda que faz o thumb mudar de tamanho, !!!!! não tirar a poha do NaN !!! -->
+                <RepeatButton 
+                    Grid.Row="0" 
+                    Style="{StaticResource ScrollBarLineButtonUp}" 
+                    Height="18"
+                    Command="ScrollBar.LineUpCommand" />
+                <Track 
+                    Name="PART_Track"
+                    ViewportSize="NaN" 
+                    Grid.Row="1"
+                    IsDirectionReversed="true">
+                    <Track.DecreaseRepeatButton>
+                        <RepeatButton 
+                        Style="{StaticResource ScrollBarPageButton}"
+                        Command="ScrollBar.PageUpCommand" />
+                    </Track.DecreaseRepeatButton>
+                    <Track.Thumb>
+                        <Thumb 
+                        Style="{StaticResource ScrollBarThumb}" 
+                        Margin="1,0,1,0"  
+                        Background="Red"
+                        BorderBrush="{StaticResource HorizontalNormalBorderBrush}"/>
+                    </Track.Thumb>
+                    <Track.IncreaseRepeatButton>
+                        <RepeatButton 
+                        Style="{StaticResource ScrollBarPageButton}"
+                        Command="ScrollBar.PageDownCommand" />
+                    </Track.IncreaseRepeatButton>
+                </Track>
+
+                <!-- Botão de Descer -->
+                <RepeatButton 
+                Grid.Row="2" 
+                Style="{StaticResource ScrollBarLineButtonDown}" 
+                Height="18"
+                Command="ScrollBar.LineDownCommand" />
+            </Grid>
+        </ControlTemplate>
+
+        <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Vertical">
+                    <Setter Property="Width" Value="18"/>
+                    <Setter Property="Height" Value="Auto" />
+                    <Setter Property="Template" Value="{StaticResource VerticalScrollBar}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+    </UserControl.Resources>
     <Grid x:Name="gdOrdenar" Background="#FFB5B5B5">
-        <Label x:Name="lblElementoPai" Content="Elemento Pai" VerticalAlignment="Top" Height="34" Width="442" Background="#FF6D6D6D" FontSize="20" FontWeight="Bold" Padding="10,0,0,0" ScrollViewer.CanContentScroll="True" VerticalContentAlignment="Center"/>
-        <Grid x:Name="gdOrdem" Margin="0,34,0,0">
-            <local:LabelCRUD HorizontalAlignment="Left" Margin="40,0,0,0" VerticalAlignment="Top" Width="402" Height="40" WithEdit="False" WithExpand="False"/>
-            <local:ImgOnline HorizontalAlignment="Left" Margin="0,0,0,0" VerticalAlignment="Top" TamanhoImg="40,40" Arredondado="-1"/>
+        <Label x:Name="lblElementoPai" Content="Elemento Pai" VerticalAlignment="Top" Height="34" Background="#FF6D6D6D" FontSize="20" FontWeight="Bold" Padding="10,0,0,0" ScrollViewer.CanContentScroll="True" VerticalContentAlignment="Center"/>
+        <Grid ClipToBounds="True" Margin="0,34,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ScrollBar x:Name="scrElementos" HorizontalAlignment="Left" Width="30" Value="0" Maximum="100" PreviewMouseWheel="Grid_PreviewMouseWheel" Grid.Column="0"/>
+            <Grid x:Name="gdOrdem" PreviewMouseWheel="Grid_PreviewMouseWheel" Grid.Column="1">
+                <local:LabelCRUD VerticalAlignment="Top" Height="40" WithEdit="False" WithExpand="False"/>
+            </Grid>
         </Grid>
         <Button x:Name="btnRedefinir" Content="Redefinir" HorizontalAlignment="Right" Margin="0,0,10,10" VerticalAlignment="Bottom" Width="80" Height="35" BorderBrush="Black"/>
         <Button x:Name="btnSalvar" Content="Salvar" HorizontalAlignment="Right" Margin="0,0,100,10" VerticalAlignment="Bottom" Width="80" Height="35" BorderBrush="Black"/>

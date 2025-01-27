@@ -1,15 +1,12 @@
 ﻿using Microsoft.Win32;
-using System;
 using System.Collections;
 using System.Diagnostics;
 using System.IO;
-using SkiaSharp;
-using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace LudoHive.Telas
 {
@@ -22,6 +19,7 @@ namespace LudoHive.Telas
         private int imgCarregada;
         public event EventHandler atalhoCadastrado;
         public event EventHandler appCadastrado;
+        public event Action FimCadastro;
         public Cadastrar()
         {
             InitializeComponent();
@@ -74,7 +72,7 @@ namespace LudoHive.Telas
             atl.setNomeAtalho(txtbxNomeAtalho.Texto);
             atl.setCaminhoAtalho(txtbxCaminhoAtalho.Texto);
             atl.setParametroAtalho(txtbxParamAtalho.Texto);
-            atl.setImgAtalho((BitmapImage)picOnImgAtalho.Imagem); 
+            atl.setImgAtalho((BitmapImage)picOnImgAtalho.Imagem);
             atl.setIconeAtalho((BitmapImage)picOnIconAtalho.Imagem);
 
             Atalhos.Alterar(atl);
@@ -281,7 +279,6 @@ namespace LudoHive.Telas
 
             btnPageAtalho.Click += (s, e) => TrocarPage(1);
             btnPageApp.Click += (s, e) => TrocarPage(2);
-            btnPagePasta.Click += (s, e) => TrocarPage(3);
 
             txtbxImgAtalho.EnterPressed += (s, e) => picOnImgAtalho.Url = txtbxImgAtalho.Texto;
             txtbxIconAtalho.EnterPressed += (s, e) => picOnIconAtalho.Url = txtbxIconAtalho.Texto;
@@ -319,14 +316,11 @@ namespace LudoHive.Telas
 
             btnPageAtalho.Background = bsUnselect;
             btnPageApp.Background = bsUnselect;
-            btnPagePasta.Background = bsUnselect;
             btnPageAtalho.BorderBrush = bsUnselect;
             btnPageApp.BorderBrush = bsUnselect;
-            btnPagePasta.BorderBrush = bsUnselect;
 
             gdPage1.Visibility = Visibility.Collapsed;
             gdPage2.Visibility = Visibility.Collapsed;
-            gdPage3.Visibility = Visibility.Collapsed;
             switch (indice)
             {
                 case 1:
@@ -338,11 +332,6 @@ namespace LudoHive.Telas
                     btnPageApp.Background = bsSelect;
                     btnPageApp.BorderBrush = bsSelect;
                     gdPage2.Visibility = Visibility.Visible;
-                    break;
-                case 3:
-                    btnPagePasta.Background = bsSelect;
-                    btnPagePasta.BorderBrush = bsSelect;
-                    gdPage3.Visibility = Visibility.Visible;
                     break;
             }
         }
@@ -432,7 +421,7 @@ namespace LudoHive.Telas
                 {
                     txtbxIconApp.Texto = ofd.FileName;
                 }
-            } 
+            }
         }
         public void FecharCadastro()
         {
@@ -440,6 +429,8 @@ namespace LudoHive.Telas
             {
                 grid.Children.Remove(this);
                 grid.UnregisterName(this.Name);
+                FimCadastro?.Invoke();
+                MessageBox.Show("aaaaa novamente");
             }
         }
         private void CriarTelaDeCola(Process navegadorAberto, string acaoTelaCola)
