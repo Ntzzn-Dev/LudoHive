@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LudoHive")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ff603b706e5e13fed0c3ee7ffdcb6405344940b7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+45bdc2ecfce820f30d7216f68fbf1bf76e2e6cf0")]
 [assembly: System.Reflection.AssemblyProductAttribute("LudoHive")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LudoHive")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -31,7 +31,7 @@
       "RelativeMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|solutionrelative:telas\\controles\\textboxcustom.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|h:\\projects\\csharp\\ludohive\\ludohive\\properties\\settings.settings||{6D2695F9-5365-4A78-89ED-F205C045BFE6}",
+      "AbsoluteMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|H:\\Projects\\CSharp\\LudoHive\\LudoHive\\properties\\settings.settings||{6D2695F9-5365-4A78-89ED-F205C045BFE6}",
       "RelativeMoniker": "D:0:0:{264D93B3-E038-47D1-9551-57E37F9502A1}|LudoHive.csproj|solutionrelative:properties\\settings.settings||{6D2695F9-5365-4A78-89ED-F205C045BFE6}"
     },
     {
@@ -73,8 +73,7 @@
               "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\Properties\\Settings.settings",
               "RelativeToolTip": "Properties\\Settings.settings",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002767|",
-              "WhenOpened": "2025-01-30T04:41:36.652Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-30T04:41:36.652Z"
             },
             {
               "$type": "Document",
@@ -86,8 +85,7 @@
               "RelativeToolTip": "Telas\\Controles\\TextboxCustom.xaml.cs",
               "ViewState": "AgIAAGwAAAAAAAAAAAAmwNIAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-01-27T04:11:26.443Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-27T04:11:26.443Z"
             },
             {
               "$type": "Document",
@@ -98,8 +96,7 @@
               "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\Telas\\Controles\\TextboxCustom.xaml",
               "RelativeToolTip": "Telas\\Controles\\TextboxCustom.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-01-27T04:10:57.643Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-27T04:10:57.643Z"
             },
             {
               "$type": "Document",
@@ -122,8 +119,7 @@
               "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\Telas\\Controles\\Ordenar.xaml",
               "RelativeToolTip": "Telas\\Controles\\Ordenar.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-01-27T04:01:07.721Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-27T04:01:07.721Z"
             },
             {
               "$type": "Document",
@@ -134,8 +130,7 @@
               "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\Telas\\Configurar.xaml",
               "RelativeToolTip": "Telas\\Configurar.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-01-27T03:58:16.754Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-27T03:58:16.754Z"
             },
             {
               "$type": "Document",
@@ -147,8 +142,7 @@
               "RelativeToolTip": "Telas\\Configurar.xaml.cs",
               "ViewState": "AgIAACoAAAAAAAAAAAAqwC4AAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-01-24T23:44:25.86Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-24T23:44:25.86Z"
             },
             {
               "$type": "Document",
@@ -171,8 +165,7 @@
               "RelativeToolTip": "Telas\\Cadastrar.xaml.cs",
               "ViewState": "AgIAAI8BAAAAAAAAAAAcwLUBAAAwAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-01-24T16:09:19.607Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-24T16:09:19.607Z"
             },
             {
               "$type": "Document",
@@ -182,7 +175,7 @@
               "RelativeDocumentMoniker": "ObjectsLH.cs",
               "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\ObjectsLH.cs",
               "RelativeToolTip": "ObjectsLH.cs",
-              "ViewState": "AgIAAIIFAAAAAAAAAADwv6UFAAAfAAAAAAAAAA==",
+              "ViewState": "AgIAAIAFAAAAAAAAAAAAAKUFAAAfAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-01-24T04:16:56.138Z",
               "EditorCaption": ""
@@ -195,7 +188,7 @@
               "RelativeDocumentMoniker": "MainWindow.xaml.cs",
               "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\MainWindow.xaml.cs",
               "RelativeToolTip": "MainWindow.xaml.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAAZAAAAAAAAAA==",
+              "ViewState": "AgIAACwAAAAAAAAAAAAQwAEAAAAZAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-01-13T22:17:37.898Z",
               "EditorCaption": ""
@@ -209,8 +202,7 @@
               "ToolTip": "H:\\Projects\\CSharp\\LudoHive\\LudoHive\\MainWindow.xaml",
               "RelativeToolTip": "MainWindow.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-01-17T02:41:36.68Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-17T02:41:36.68Z"
             }
           ]
         }
