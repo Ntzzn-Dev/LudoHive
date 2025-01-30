@@ -430,7 +430,6 @@ namespace LudoHive.Telas
                 grid.Children.Remove(this);
                 grid.UnregisterName(this.Name);
                 FimCadastro?.Invoke();
-                MessageBox.Show("aaaaa novamente");
             }
         }
         private void CriarTelaDeCola(Process navegadorAberto, string acaoTelaCola)

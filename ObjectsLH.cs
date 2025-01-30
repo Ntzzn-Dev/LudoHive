@@ -3,6 +3,7 @@ using SharpDX.DirectInput;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -12,6 +13,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
+using static LudoHive.NativeMethods;
 
 namespace LudoHive
 {
@@ -346,15 +348,12 @@ namespace LudoHive
                     }
 
                     string insertPastaAtalhoCommand = "INSERT INTO Pasta_Atalho (Id_Pasta, Id_Atalho, OrdemExibicao) SELECT @idPasta, @idAtalho, IFNULL(MAX(OrdemExibicao), 0) + 1 FROM Pasta_Atalho WHERE Id_Pasta = 1;";
-                    /*foreach (int idArtista in artistasIds)
-                    {*/
-                        using (var command = new SqliteCommand(insertPastaAtalhoCommand, connection))
-                        {
-                            command.Parameters.AddWithValue("@idPasta", idPasta);
-                            command.Parameters.AddWithValue("@idAtalho", idAtalho);
-                        command.ExecuteNonQuery();
-                        }
-                    /*}*/
+                    using (var command = new SqliteCommand(insertPastaAtalhoCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@idPasta", idPasta);
+                        command.Parameters.AddWithValue("@idAtalho", idAtalho);
+                    command.ExecuteNonQuery();
+                    }
                 }
             }
             catch (Exception ex)
@@ -1102,9 +1101,9 @@ namespace LudoHive
         private Dictionary<string, DateTime> _cooldowns = new Dictionary<string, DateTime>();
         private TimeSpan _cooldownTime = TimeSpan.FromMilliseconds(300);
 
-        public event EventHandler btnQ, btnB, btnX, btnT;
-        public event EventHandler moveRight, moveLeft, moveUp, moveDown;
-        public event EventHandler controlDisconnect;
+        public event Action btnQ, btnB, btnX, btnT;
+        public event Action moveRight, moveLeft, moveUp, moveDown;
+        public event Action controlDisconnect;
 
         private static readonly Guid GUID_DEVINTERFACE_HID = new Guid("4D1E55B2-F16F-11CF-88CB-001111000030"); // HID class GUID
 
@@ -1123,6 +1122,11 @@ namespace LudoHive
         {
             DetectJoystick(lParam);
             IniciarTimerMonitoramentoControle();
+        }
+
+        public Controle()
+        {
+
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -1180,7 +1184,7 @@ namespace LudoHive
                 if (_joystick == null || jogoEmUso)
                 {
                     timerControle.Stop();
-                    controlDisconnect?.Invoke(this, e);
+                    controlDisconnect?.Invoke();
                     return;
                 }
 
@@ -1208,21 +1212,21 @@ namespace LudoHive
                 float rightY = (rzAnalog - 32767f) / 32767f;
 
                 // Executar métodos dependendo dos valores
-                if ((leftX > 0.5 || dPad == 9000) && CanExecute("MoveRight")) moveRight?.Invoke(this, e);
-                else if ((leftX < -0.5 || dPad == 27000) && CanExecute("MoveLeft")) moveLeft?.Invoke(this, e);
+                if ((leftX > 0.5 || dPad == 9000) && CanExecute("MoveRight")) moveRight?.Invoke();
+                else if ((leftX < -0.5 || dPad == 27000) && CanExecute("MoveLeft")) moveLeft?.Invoke();
 
-                if ((leftY > 0.5 || dPad == 18000) && CanExecute("MoveUp")) moveUp?.Invoke(this, e);
-                else if ((leftY < -0.5 || dPad == 0) && CanExecute("MoveDown")) moveDown?.Invoke(this, e);
+                if ((leftY > 0.5 || dPad == 18000) && CanExecute("MoveUp")) moveUp?.Invoke();
+                else if ((leftY < -0.5 || dPad == 0) && CanExecute("MoveDown")) moveDown?.Invoke();
 
-                if (buttons.Length > 1 && buttons[0] && CanExecute("BtnQ")) btnQ?.Invoke(this, e);
-                if (buttons.Length > 1 && buttons[1] && CanExecute("BtnX")) btnX?.Invoke(this, e);
-                if (buttons.Length > 1 && buttons[2] && CanExecute("BtnB")) btnB?.Invoke(this, e);
-                if (buttons.Length > 1 && buttons[3] && CanExecute("BtnT")) btnT?.Invoke(this, e);
+                if (buttons.Length > 1 && buttons[0] && CanExecute("BtnQ")) btnQ?.Invoke();
+                if (buttons.Length > 1 && buttons[1] && CanExecute("BtnX")) btnX?.Invoke();
+                if (buttons.Length > 1 && buttons[2] && CanExecute("BtnB")) btnB?.Invoke();
+                if (buttons.Length > 1 && buttons[3] && CanExecute("BtnT")) btnT?.Invoke();
             }
             catch (SharpDX.SharpDXException)
             {
                 timerControle.Stop();
-                controlDisconnect?.Invoke(this, e);
+                controlDisconnect?.Invoke();
             }
         }
         private bool CanExecute(string actionName)
@@ -1233,6 +1237,220 @@ namespace LudoHive
                 return true;
             }
             return false;
+        }
+    }
+
+    public struct MonitorInfo
+    {
+        public IntPtr MonitorHandle;
+        public RECT MonitorArea;
+    }
+
+    public static class NativeMethods
+    {
+        [DllImport("user32.dll")]
+        public static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+        [DllImport("user32.dll")]
+        public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, int uFlags);
+        [DllImport("user32.dll")]
+        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+        [DllImport("user32.dll")]
+        public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+        [DllImport("user32.dll")]
+        public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+        [DllImport("user32.dll")]
+        public static extern int GetSystemMetrics(int nIndex);
+        [DllImport("user32.dll")]
+        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+        [DllImport("user32.dll")]
+        public static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
+        [DllImport("user32.dll")]
+        public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+        private static readonly Guid GUID_DEVINTERFACE_HID = new Guid("4D1E55B2-F16F-11CF-88CB-001111000030"); // HID class GUID
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr RegisterDeviceNotification(IntPtr hRecipient, IntPtr NotificationFilter, int Flags);
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern bool UnregisterDeviceNotification(IntPtr Handle);
+
+        public const int SWP_NOZORDER = 0x0004;
+        public const int SWP_NOACTIVATE = 0x0010;
+
+        public const int GWL_STYLE = -16;
+        public const int WS_BORDER = 0x00800000;
+        public const int WS_CAPTION = 0x00C00000;
+        public const int WS_THICKFRAME = 0x00040000;
+
+        const int SM_CXSCREEN = 0;
+        const int SM_CYSCREEN = 1;
+
+        private const int WM_DEVICECHANGE = 0x0219;
+        private const int DBT_DEVICEARRIVAL = 0x8000;
+        private const int DBT_DEVTYP_DEVICEINTERFACE = 5;
+        private const int DEVICE_NOTIFY_WINDOW_HANDLE = 0x00000000;
+
+        public delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MONITORINFO
+        {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int left;
+            public int top;
+            public int right;
+            public int bottom;
+
+            public override string ToString()
+            {
+                return $"[Left = {left}, Top = {top}, Right = {right}, Bottom = {bottom}]";
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct WINDOWPLACEMENT
+        {
+            public int length;
+            public int flags;
+            public int showCmd;
+            public POINT ptMinPosition;
+            public POINT ptMaxPosition;
+            public RECT rcNormalPosition;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int x;
+            public int y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct DEV_BROADCAST_HDR
+        {
+            public int dbch_size;
+            public int dbch_devicetype;
+            public int dbch_reserved;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct DEV_BROADCAST_DEVICEINTERFACE
+        {
+            public int dbcc_size;
+            public int dbcc_devicetype;
+            public int dbcc_reserved;
+            public Guid dbcc_classguid;
+            public short dbcc_name;
+        }
+
+        // -=+ METODOS +=- //
+
+        public static bool IsFullscreenWithoutBorders(Process processo)
+        {
+            IntPtr hwnd = FindWindow(null, processo.MainWindowTitle);
+            if (hwnd != IntPtr.Zero)
+            {
+                RECT rect;
+                GetWindowRect(hwnd, out rect);
+
+                // Obter dimensões da tela
+                int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+                int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+                if (rect.right - rect.left >= screenWidth && rect.bottom - rect.top >= screenHeight)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        public static bool HasBorder(Process processo)
+        {
+            IntPtr hwnd = FindWindow(null, processo.MainWindowTitle);
+            if (hwnd != IntPtr.Zero)
+            {
+                int style = GetWindowLong(hwnd, GWL_STYLE);
+                return (style & (WS_BORDER | WS_CAPTION | WS_THICKFRAME)) != 0;
+            }
+            return false;
+        }
+
+        public static List<MonitorInfo> GetAllMonitors()
+        {
+            List<MonitorInfo> monitors = new List<MonitorInfo>();
+
+            NativeMethods.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMonitor, IntPtr hdcMonitor, ref NativeMethods.RECT lprcMonitor, IntPtr dwData) =>
+            {
+                var monitorInfo = new NativeMethods.MONITORINFO();
+                monitorInfo.cbSize = Marshal.SizeOf(monitorInfo);
+                NativeMethods.GetMonitorInfo(hMonitor, ref monitorInfo);
+
+                monitors.Add(new MonitorInfo
+                {
+                    MonitorHandle = hMonitor,
+                    MonitorArea = monitorInfo.rcMonitor
+                });
+                return true;
+            }, IntPtr.Zero);
+
+            return monitors;
+        }
+        public static void MoveToMonitor(int numMonitor, Window wd)
+        {
+            List<MonitorInfo> monitors = GetAllMonitors();
+            MonitorInfo monitor = default;
+
+            if (monitors.Count >= numMonitor)
+            {
+                numMonitor--; // Torna o número do monitor dentro dos índices da lista
+                monitor = monitors[numMonitor];
+            }
+            else
+            {
+                return;
+            }
+
+            IntPtr windowHandle = new WindowInteropHelper(wd).Handle;
+
+            bool result = NativeMethods.SetWindowPos(
+                windowHandle,
+                IntPtr.Zero,
+                monitor.MonitorArea.left - 7,
+                monitor.MonitorArea.top - 7,
+                monitor.MonitorArea.right - monitor.MonitorArea.left + 14,
+                monitor.MonitorArea.bottom - monitor.MonitorArea.top + 14,
+                NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
+        }
+
+        public static void RegisterForDeviceNotifications(Window wd, IntPtr _notificationHandle)
+        {
+            var dbi = new DEV_BROADCAST_DEVICEINTERFACE
+            {
+                dbcc_size = Marshal.SizeOf(typeof(DEV_BROADCAST_DEVICEINTERFACE)),
+                dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE,
+                dbcc_classguid = GUID_DEVINTERFACE_HID
+            };
+
+            IntPtr buffer = Marshal.AllocHGlobal(Marshal.SizeOf(dbi));
+            Marshal.StructureToPtr(dbi, buffer, true);
+
+            IntPtr windowHandle = new WindowInteropHelper(wd).Handle; // Obtém o HWND da janela WPF
+            _notificationHandle = RegisterDeviceNotification(windowHandle, buffer, DEVICE_NOTIFY_WINDOW_HANDLE);
+
+            Marshal.FreeHGlobal(buffer);
+
+            if (_notificationHandle == IntPtr.Zero)
+            {
+                throw new Exception("Falha ao registrar notificações de dispositivo.");
+            }
         }
     }
 }

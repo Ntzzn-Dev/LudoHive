@@ -49,7 +49,7 @@ namespace LudoHive.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public int IdUltimoJogo {
             get {
                 return ((int)(this["IdUltimoJogo"]));
@@ -61,13 +61,25 @@ namespace LudoHive.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public int IdUltimaPasta {
             get {
                 return ((int)(this["IdUltimaPasta"]));
             }
             set {
                 this["IdUltimaPasta"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int MonitorEmUso {
+            get {
+                return ((int)(this["MonitorEmUso"]));
+            }
+            set {
+                this["MonitorEmUso"] = value;
             }
         }
     }

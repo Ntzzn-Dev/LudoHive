@@ -50,6 +50,10 @@
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "dependencies": {
+            "Hardcodet.Wpf.TaskbarNotification": {
+              "target": "Package",
+              "version": "[1.0.5, )"
+            },
             "Microsoft.Data.Sqlite": {
               "target": "Package",
               "version": "[9.0.0, )"

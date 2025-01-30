@@ -11,6 +11,8 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using LudoHive.Telas.Controles;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 
 namespace LudoHive.Telas
 {
@@ -43,6 +45,7 @@ namespace LudoHive.Telas
 
             CriarPastaOrd();
         }
+        // Configurações --------------------------------------------------------------------------
         private void DefinirGatilhos()
         {
             txtbxNavegadorPadrao.TextoChanged += (s, e) => {

@@ -78,3 +78,4 @@ H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\La
 H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\Ordenar.g.cs
 H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\LabelCRUD.baml
 H:\Projects\CSharp\LudoHive\LudoHive\obj\Debug\net8.0-windows\Telas\Controles\Ordenar.baml
+H:\Projects\CSharp\LudoHive\LudoHive\bin\Debug\net8.0-windows\Hardcodet.Wpf.TaskbarNotification.dll

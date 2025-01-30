@@ -3,12 +3,26 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:tb="http://www.hardcodet.net/taskbar"
         xmlns:local="clr-namespace:LudoHive"
         xmlns:Controles="clr-namespace:LudoHive.Telas.Controles" x:Class="LudoHive.MainWindow"
         mc:Ignorable="d"
         Title="MainWindow" Height="900" Width="1600" Background="White" WindowState="Maximized" WindowStyle="None"
         KeyDown="Window_KeyDown">
     <Grid x:Name="mainGrid">
+        <tb:TaskbarIcon x:Name="TrayIcon"
+                        IconSource="pack://application:,,,/LudoHive;component/Assets/LudoHive_Icon.ico"
+                        ToolTipText="LudoHive - Rodando em Segundo Plano"
+                        Visibility="Collapsed"
+                        MenuActivation="RightClick"
+                        LeftClickCommand="{Binding ShowMainWindowCommand}">
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Restaurar" Click="RestaurarClick"/>
+                    <MenuItem Header="Sair" Click="SairClick"/>
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+        </tb:TaskbarIcon>
         <Image x:Name="PicImgAtalhoAtual"/>
         <Image x:Name="PicImgAtalhoProx"/>
         <Image x:Name="PicImgAtalhoPrev"/>

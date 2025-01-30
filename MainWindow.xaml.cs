@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -30,7 +29,7 @@ public partial class MainWindow : Window
     private List<Atalhos> atalhosProximos = new List<Atalhos>();
     private Process jogoAberto;
     private int idAtual = Properties.Settings.Default.IdUltimoJogo;
-    private bool controlesFuncionando = false;
+    private bool controlesFuncionando = true;
     private bool trocandoImage = false;
     // Pastas =========================
     private Atalhos atalhoProxPasta;
@@ -41,7 +40,6 @@ public partial class MainWindow : Window
     private bool abrindoOJogo;
     // Painel APPS ====================
     private bool appsOcultos = true;
-    int heightPnlApps;
     private Popup pop;
     private List<FrameworkElement> controlesPermitidos = new List<FrameworkElement>();
     // Temporizadores =================
@@ -49,56 +47,22 @@ public partial class MainWindow : Window
     private static DateTime horario;
     // Controle =======================
     private Controle controle;
-    private IntPtr _notificationHandle;
     private float appAtual = 0, appCount = 0;
     private List<int> idsApps = new List<int>();
-    // Hotkeys e DLL ==================
-    private static readonly Guid GUID_DEVINTERFACE_HID = new Guid("4D1E55B2-F16F-11CF-88CB-001111000030"); // HID class GUID
-    [DllImport("user32.dll")]
-    private static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
-    [DllImport("user32.dll")]
-    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
-    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr RegisterDeviceNotification(IntPtr hRecipient, IntPtr NotificationFilter, int Flags);
-    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern bool UnregisterDeviceNotification(IntPtr Handle);
-    [DllImport("user32.dll")]
-    private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll")]
-    private static extern int GetSystemMetrics(int nIndex);
-    [DllImport("user32.dll")]
-    private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
-    [DllImport("user32.dll")]
-    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
-
+    // Hotkeys ========================
     private const int WM_HOTKEY = 0x0312;
     private const int MOD_ALT = 0x0001;
     private const int MOD_CONTROL = 0x0002;
     private const int VK_NUMPAD5 = 0x65;
     private const int VK_T = 0x54;
 
-    private IntPtr _windowHandle;
-    private HwndSource _source;
-
-    const int GWL_STYLE = -16;
-    const int WS_BORDER = 0x00800000;
-    const int WS_CAPTION = 0x00C00000;
-    const int WS_THICKFRAME = 0x00040000;
-
-    [DllImport("user32.dll")]
-    public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-    private const int WM_DEVICECHANGE = 0x0219;
-    private const int DBT_DEVICEARRIVAL = 0x8000;
-    private const int DBT_DEVTYP_DEVICEINTERFACE = 5;
-    private const int DEVICE_NOTIFY_WINDOW_HANDLE = 0x00000000;
     public MainWindow()
     {
         InitializeComponent();
-        idAtual = 1;
-        pastaAtual = 1;
+
+        idAtual = idAtual == 0 ? 1 : idAtual;
+        pastaAtual = pastaAtual == 0 ? 1 : pastaAtual;
+
         AtalhoPegarIds();
 
         PicImgVinheta.Source = new BitmapImage(Referencias.vinheta);
@@ -108,7 +72,6 @@ public partial class MainWindow : Window
 
         CriarRelogio();
     }
-
     private void CloseWindow()
     {
         Application.Current.Shutdown();
@@ -133,113 +96,19 @@ public partial class MainWindow : Window
         this.Topmost = false;
     }
 
-    // Verificar jogo Maximizado //
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct WINDOWPLACEMENT
-    {
-        public int length;
-        public int flags;
-        public int showCmd;
-        public POINT ptMinPosition;
-        public POINT ptMaxPosition;
-        public RECT rcNormalPosition;
-    }
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT
-    {
-        public int x;
-        public int y;
-    }
-    [StructLayout(LayoutKind.Sequential)]
-    private struct RECT
-    {
-        public int left;
-        public int top;
-        public int right;
-        public int bottom;
-    }
-    const int SM_CXSCREEN = 0;
-    const int SM_CYSCREEN = 1;
-    public static bool IsFullscreenWithoutBorders(Process processo)
-    {
-        IntPtr hwnd = FindWindow(null, processo.MainWindowTitle);
-        if (hwnd != IntPtr.Zero)
-        {
-            RECT rect;
-            GetWindowRect(hwnd, out rect);
-
-            // Obter dimensões da tela
-            int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-            int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-
-            if (rect.right - rect.left >= screenWidth && rect.bottom - rect.top >= screenHeight)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-    public static bool HasBorder(Process processo)
-    {
-        IntPtr hwnd = FindWindow(null, processo.MainWindowTitle);
-        if (hwnd != IntPtr.Zero)
-        {
-            int style = GetWindowLong(hwnd, GWL_STYLE);
-            return (style & (WS_BORDER | WS_CAPTION | WS_THICKFRAME)) != 0;
-        }
-        return false;
-    }
-
     // Verificar Conexão de algum controle //
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct DEV_BROADCAST_HDR
-    {
-        public int dbch_size;
-        public int dbch_devicetype;
-        public int dbch_reserved;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct DEV_BROADCAST_DEVICEINTERFACE
-    {
-        public int dbcc_size;
-        public int dbcc_devicetype;
-        public int dbcc_reserved;
-        public Guid dbcc_classguid;
-        public short dbcc_name;
-    }
-    private void RegisterForDeviceNotifications()
-    {
-        var dbi = new DEV_BROADCAST_DEVICEINTERFACE
-        {
-            dbcc_size = Marshal.SizeOf(typeof(DEV_BROADCAST_DEVICEINTERFACE)),
-            dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE,
-            dbcc_classguid = GUID_DEVINTERFACE_HID
-        };
-
-        IntPtr buffer = Marshal.AllocHGlobal(Marshal.SizeOf(dbi));
-        Marshal.StructureToPtr(dbi, buffer, true);
-
-        IntPtr windowHandle = new WindowInteropHelper(this).Handle; // Obtém o HWND da janela WPF
-        _notificationHandle = RegisterDeviceNotification(windowHandle, buffer, DEVICE_NOTIFY_WINDOW_HANDLE);
-
-        Marshal.FreeHGlobal(buffer);
-
-        if (_notificationHandle == IntPtr.Zero)
-        {
-            throw new Exception("Falha ao registrar notificações de dispositivo.");
-        }
-    }
-
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        int WM_DEVICECHANGE = 0x0219;
+        int DBT_DEVICEARRIVAL = 0x8000;
+
         if (msg == WM_DEVICECHANGE) //Controle
         {
             int wParamInt = wParam.ToInt32();
             if (wParamInt == DBT_DEVICEARRIVAL)
-            {                
+            {
+                if(controle != null) LimparComandos();
+                controle = new Controle();
                 controle = new Controle(lParam);
                 DefinirComandos();
             }
@@ -264,6 +133,7 @@ public partial class MainWindow : Window
 
         return IntPtr.Zero;
     }
+
     private void InicializarControle()
     {
         DirectInput _directInput = new DirectInput();
@@ -282,6 +152,8 @@ public partial class MainWindow : Window
         Joystick _joystick = new Joystick(_directInput, joystickGuid);
         _joystick.Acquire();
 
+        if (controle != null) LimparComandos();
+        controle = new Controle();
         controle = new Controle(_joystick);
         DefinirComandos();
     }
@@ -292,30 +164,22 @@ public partial class MainWindow : Window
         if (controlesFuncionando == true) {
             if (e.Key == System.Windows.Input.Key.Left)
             {
-                GamePrev();
+                MoveLeft();
                 e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.Right)
             {
-                GameNext();
+                MoveRight();
                 e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.Up)
             {
-                if (appsOcultos == true)
-                {
-                    TransicaoImagePasta();
-                }else
-                {
-                    appsOcultos = false;
-                    ToggleApps(null);
-                }
+                MoveDown();
                 e.Handled = true;
             }
             else if (e.Key == System.Windows.Input.Key.Down)
             {
-                appsOcultos = true;
-                ToggleApps(null);
+                MoveUp();
                 e.Handled = true; 
             }
             else if (e.Key == System.Windows.Input.Key.Space)
@@ -706,27 +570,30 @@ public partial class MainWindow : Window
         {
             this.Dispatcher.Invoke(new Action(() =>
             {
-                abrindoOJogo = true;
-                string caminho = atalhoAtual.getCaminhoAtalho();
-                string permissao = "runas";
-                string argumentacao = atalhoAtual.getParametroAtalho();
-                string diretorioTrabalho = System.IO.Path.GetDirectoryName(caminho);
-                if (caminho.Contains("steam:"))
+                if (controlesFuncionando == true)
                 {
-                    permissao = "";
+                    abrindoOJogo = true;
+                    string caminho = atalhoAtual.getCaminhoAtalho();
+                    string permissao = "runas";
+                    string argumentacao = atalhoAtual.getParametroAtalho();
+                    string diretorioTrabalho = System.IO.Path.GetDirectoryName(caminho);
+                    if (caminho.Contains("steam:"))
+                    {
+                        permissao = "";
+                    }
+                    if (caminho.Contains("epicgames"))
+                    {
+                        argumentacao = caminho;
+                        caminho = GetEpicGames();
+                        diretorioTrabalho = System.IO.Path.GetDirectoryName(caminho);
+                        AbrirEpicGames(caminho, diretorioTrabalho, argumentacao, permissao);
+                    }
+                    else
+                    {
+                        AbrirAtalho(caminho, diretorioTrabalho, argumentacao, permissao);
+                    }
+                    PicGIFAbrindoJogo();
                 }
-                if (caminho.Contains("epicgames"))
-                {
-                    argumentacao = caminho;
-                    caminho = GetEpicGames();
-                    diretorioTrabalho = System.IO.Path.GetDirectoryName(caminho);
-                    AbrirEpicGames(caminho, diretorioTrabalho, argumentacao, permissao);
-                }
-                else
-                {
-                    AbrirAtalho(caminho, diretorioTrabalho, argumentacao, permissao);
-                }
-                PicGIFAbrindoJogo();
             }));
         }
         catch (Exception ex)
@@ -759,7 +626,7 @@ public partial class MainWindow : Window
                 if (IgnorarProcesso(processo))
                     continue;
 
-                if (IsFullscreenWithoutBorders(processo) || HasBorder(processo))
+                if (NativeMethods.IsFullscreenWithoutBorders(processo) || NativeMethods.HasBorder(processo))
                 {
                     if (jogoAberto != null)
                     {
@@ -858,6 +725,7 @@ public partial class MainWindow : Window
                 TimeSpan tempoDecorrido = DateTime.Now - processo.StartTime;
                 string tempoDaSessao = tempoDecorrido.ToString(@"h'h'mm'm'");
                 Atalhos.SessaoFinalizada(tempoDaSessao, idAtual);
+
                 lblTempoSessao.Content = "Durou: " + tempoDaSessao;
             });
         }
@@ -873,28 +741,36 @@ public partial class MainWindow : Window
                 abrindoOJogo = false;
             }
             
-            PararPrograma();
-
             btnAbrir.Content = "Voltar ao jogo";
             btnAbrir.Click -= BtnAbrirAtalho;
             btnAbrir.Click += BtnMandarPraBandeja;
         });
-        /*CriarNotificacao();
-        notifyIcon.ShowBalloonTip(1000, "Aplicativo Minimizado", "Clique para restaurar", ToolTipIcon.Info);*/
+    }
+    private void RestaurarClick(object sender, RoutedEventArgs e)
+    {
+        this.Show();
+        this.WindowState = WindowState.Maximized;
+    }
+    private void SairClick(object sender, RoutedEventArgs e)
+    {
+        System.Windows.Application.Current.Shutdown();
     }
     private void PararPrograma()
     {
         PicControlON.Source = null;
         controle?.timerControle.Stop();
         controlesFuncionando = false;
+
+        TrayIcon.Visibility = Visibility.Visible;
     }
     private void VoltarPrograma()
     {
-        MessageBox.Show("funcionando novamente");
         PicControlON.Source = new BitmapImage(Referencias.controlOn);
         controle?.timerControle.Start();
         if(controle == null) { PicControlON.Source = null; }
         controlesFuncionando = true;
+
+        TrayIcon.Visibility = Visibility.Collapsed;
     }
     private void BtnMandarPraBandeja(object sender, EventArgs e)
     {
@@ -905,7 +781,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            string[] processosIgnorados = { "dev", "riot", "notepad", "chrome", "firefox", "opera", "spotify", "edge", "steam", "textinput", "code", "xbox", "dwm", "taskmgr", "protected", "ludoh", "discord", "settings", "explorer", "svchost", "dllhost", "taskhost", "service", "application", "explorer" };
+            string[] processosIgnorados = { "dev", "riot", "notepad", "chrome", "firefox", "opera", "spotify", "edge", "steam", "textinput", "code", "xbox", "dwm", "taskmgr", "protected", "ludoh", "discord", "settings", "explorer", "svchost", "dllhost", "taskhost", "service", "application", "explorer", "window", "DS4" };
 
             if (processosIgnorados.Any(nome => processo.ProcessName.ToLower().Contains(nome)))
                 return true;
@@ -989,6 +865,8 @@ public partial class MainWindow : Window
                 lblDataSessao.Content = "Data: " + inicioSessao;
             }));
 
+            PararPrograma();
+
             MonitoramentoDeProcesos();
         }
         catch (Exception ex)
@@ -998,6 +876,7 @@ public partial class MainWindow : Window
     }
     private void AoCarregar(object sender, EventArgs e)
     {
+        NativeMethods.MoveToMonitor(Properties.Settings.Default.MonitorEmUso, this);
         if (atalhoAtual != null)
         {
             PicImgAtalhoAtual.Source = atalhoAtual.getImgAtalho();
@@ -1008,8 +887,7 @@ public partial class MainWindow : Window
         }
         PegarApps();
         InicializarControle();
-        RegisterForDeviceNotifications();
-
+        NativeMethods.RegisterForDeviceNotifications(this, IntPtr.Zero);
 
         var rectGeometry = new RectangleGeometry
         {
@@ -1022,9 +900,9 @@ public partial class MainWindow : Window
         var source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
         source.AddHook(WndProc);
 
-        RegisterHotKey(new WindowInteropHelper(this).Handle, 9000, MOD_CONTROL | MOD_ALT, VK_T);
-        RegisterHotKey(new WindowInteropHelper(this).Handle, 9001, MOD_CONTROL, VK_NUMPAD5);
-        RegisterHotKey(new WindowInteropHelper(this).Handle, 9002, MOD_ALT, VK_NUMPAD5);
+        NativeMethods.RegisterHotKey(new WindowInteropHelper(this).Handle, 9000, MOD_CONTROL | MOD_ALT, VK_T);
+        NativeMethods.RegisterHotKey(new WindowInteropHelper(this).Handle, 9001, MOD_CONTROL, VK_NUMPAD5);
+        NativeMethods.RegisterHotKey(new WindowInteropHelper(this).Handle, 9002, MOD_ALT, VK_NUMPAD5);
     }
 
     private void VisualizarEscolhaViaControle()
@@ -1086,7 +964,7 @@ public partial class MainWindow : Window
                 Apresentacao(atalhoProxPasta.getNomePasta(), 99);
                 lblPastaAtual.Content = "Pasta: " + atalhoProxPasta.getNomePasta();
 
-                if (atalhoProxPasta != null) { PicImgAtalhoNovaPasta.Source = atalhoProxPasta.getImgAtalho(); }
+                if (atalhoProxPasta != null) { PicImgAtalhoNovaPasta.Source = atalhoProxPasta.getImgAtalho(); } //Arrumar para impedir que idatual ou pastaatual seja invalido
 
                 ThicknessAnimation animation = new ThicknessAnimation
                 {
@@ -1372,21 +1250,35 @@ public partial class MainWindow : Window
         }
     }
     // Controles ----------------------------------------------------------------------------------
+    private void LimparComandos()
+    {
+        controle.controlDisconnect -= TirarIconControle;
+        controle.btnX -= BtnX;
+        controle.btnB -= BtnO;
+        controle.moveLeft -= MoveLeft;
+        controle.moveRight -= MoveRight;
+        controle.moveDown -= MoveDown;
+        controle.moveUp -= MoveUp;
+    }
     private void DefinirComandos()
     {
         this.Dispatcher.Invoke(() => { PicControlON.Source = new BitmapImage(Referencias.controlOn); });
-        controle.controlDisconnect += (s, e) => this.Dispatcher.Invoke(() => { PicControlON.Source = null; });
-        controle.btnX += (s, e) => BtnX();
-        controle.btnB += (s, e) => BtnO();
-        controle.moveLeft += (s, e) => MoveLeft();
-        controle.moveRight += (s, e) => MoveRight();
-        controle.moveDown += (s, e) => MoveDown();
-        controle.moveUp += (s, e) => MoveUp();
+        controle.controlDisconnect += TirarIconControle;
+        controle.btnX += BtnX;
+        controle.btnB += BtnO;
+        controle.moveLeft += MoveLeft;
+        controle.moveRight += MoveRight;
+        controle.moveDown += MoveDown;
+        controle.moveUp += MoveUp;
         VisualizarEscolhaViaControle();
+
+        if (controlesFuncionando == false)
+        { controle?.timerControle.Stop(); PicControlON.Source = null; }
     }
+    private void TirarIconControle() { this.Dispatcher.Invoke(() => { PicControlON.Source = null; }); }
     private void MoveRight() { if (appsOcultos) { GameNext(); } else { appAtual += 1; if (appAtual >= appCount) { appAtual = appCount - 1; } VisualizarEscolhaViaControle(); } }
     private void MoveLeft() { if (appsOcultos) { GamePrev(); } else { appAtual -= 1; if (appAtual <= 0) { appAtual = 0; } VisualizarEscolhaViaControle(); } }
-    private void MoveDown() { if (appsOcultos == true) { TransicaoImagePasta(); } else { appsOcultos = false; ToggleApps(null); } }
+    private void MoveDown() { if (appsOcultos) { TransicaoImagePasta(); } else { appsOcultos = false; ToggleApps(null); } }
     private void MoveUp() { appsOcultos = true; ToggleApps(null); }
     private void BtnX() { if (appsOcultos) { if (abrindoOJogo == false) { BtnAbrirAtalho(null, null); } } else { BtnAbrirAplicativos(null, EventArgs.Empty); } }
     private void BtnO() { this.Dispatcher.Invoke(() => { this.Close(); }); }
