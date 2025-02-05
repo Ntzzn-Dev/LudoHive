@@ -37,7 +37,6 @@ public partial class MainWindow : Window
     private List<Atalhos> atalhosProximosPastas = new List<Atalhos>();
     private int pastaAtual = Properties.Settings.Default.IdUltimaPasta;
     // Bandeja ========================
-    //private NotifyIcon notifyIcon;
     private bool abrindoOJogo;
     // Painel APPS ====================
     private bool appsOcultos = true;
@@ -97,7 +96,7 @@ public partial class MainWindow : Window
         this.Topmost = false;
     }
 
-    // Verificar Conexão de algum controle //
+    // Comandos do windows //
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         int WM_DEVICECHANGE = 0x0219;
@@ -135,30 +134,6 @@ public partial class MainWindow : Window
         return IntPtr.Zero;
     }
 
-    private void InicializarControle()
-    {
-        DirectInput _directInput = new DirectInput();
-        var joystickGuid = Guid.Empty;
-
-        foreach (var deviceInstance in _directInput.GetDevices(DeviceType.Gamepad, DeviceEnumerationFlags.AttachedOnly))
-        {
-            joystickGuid = deviceInstance.InstanceGuid;
-        }
-
-        if (joystickGuid == Guid.Empty)
-        {
-            return;
-        }
-
-        Joystick _joystick = new Joystick(_directInput, joystickGuid);
-        _joystick.Acquire();
-
-        if (controle != null) LimparComandos();
-        controle = new Controle();
-        controle = new Controle(_joystick);
-        DefinirComandos();
-    }
-
     // Substituir acao das teclas //
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
@@ -190,6 +165,8 @@ public partial class MainWindow : Window
             }
         }
     }
+
+    // Geral --------------------------------------------------------------------------------------
     private void DefinirGatilhos()
     {
         this.Loaded += AoCarregar;
@@ -206,6 +183,103 @@ public partial class MainWindow : Window
 
         gdPnlApps.MouseDown += (s, e) => ToggleApps(e);
     }
+    private void AoCarregar(object sender, EventArgs e)
+    {
+        NativeMethods.MoveToMonitor(Properties.Settings.Default.MonitorEmUso, this);
+        if (atalhoAtual != null)
+        {
+            PicImgAtalhoAtual.Source = atalhoAtual.getImgAtalho();
+            PicDefinirCorDeFundo(atalhoAtual.getImgAtalho());
+            PicTransitionsCriar();
+
+            CarregarAtalhosPastas();
+        }
+        PegarApps();
+        InicializarControle();
+        NativeMethods.RegisterForDeviceNotifications(this, IntPtr.Zero);
+
+        var rectGeometry = new RectangleGeometry
+        {
+            Rect = new Rect(0, -30, mainGrid.ActualWidth, 245),
+            RadiusX = 20,
+            RadiusY = 20
+        };
+        recPnlApp.Clip = rectGeometry;
+
+        var source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+        source.AddHook(WndProc);
+
+        NativeMethods.RegisterHotKey(new WindowInteropHelper(this).Handle, 9000, MOD_CONTROL | MOD_ALT, VK_T);
+        NativeMethods.RegisterHotKey(new WindowInteropHelper(this).Handle, 9001, MOD_CONTROL, VK_NUMPAD5);
+        NativeMethods.RegisterHotKey(new WindowInteropHelper(this).Handle, 9002, MOD_ALT, VK_NUMPAD5);
+    }
+    private void AtalhoPegarIds()
+    {
+        ids.Clear();
+        try
+        {
+            ids = Atalhos.ConsultarIDs(pastaAtual);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Erro ao listar ids: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
+        if (ids.Count > 0)
+        {
+            if (!ids.Contains(idAtual)) { idAtual = (int)ids[0]; }
+            atalhosProximos = Atalhos.ConsultarAtalhos(ids, pastaAtual);
+            AtalhoListar(idAtual);
+        }
+        else
+        {
+            Cadastrar();
+        }
+    }
+    private int AumentarIndice(int i, int[] a)
+    {
+        if (Array.IndexOf(a, i) == a.Length - 1)
+        {
+            i = a[0];
+        }
+        else
+        {
+            i += 1;
+        }
+        return i;
+    }
+    private void PicDefinirCorDeFundo(BitmapImage bitmapImage)
+    {
+        WriteableBitmap writeableBitmap = new WriteableBitmap(bitmapImage);
+
+        long totalR = 0, totalG = 0, totalB = 0, totalA = 0;
+        int totalPixels = writeableBitmap.PixelWidth * writeableBitmap.PixelHeight;
+
+        int stride = writeableBitmap.PixelWidth * 4;
+        byte[] pixelData = new byte[writeableBitmap.PixelHeight * stride];
+        writeableBitmap.CopyPixels(pixelData, stride, 0);
+
+        for (int i = 0; i < pixelData.Length; i += 4)
+        {
+            byte a = pixelData[i + 3];
+            byte r = pixelData[i + 2];
+            byte g = pixelData[i + 1];
+            byte b = pixelData[i];
+
+            totalA += a;
+            totalR += r;
+            totalG += g;
+            totalB += b;
+        }
+
+        byte avgA = (byte)(totalA / totalPixels);
+        byte avgR = (byte)(totalR / totalPixels);
+        byte avgG = (byte)(totalG / totalPixels);
+        byte avgB = (byte)(totalB / totalPixels);
+
+        this.Background = new SolidColorBrush(Color.FromArgb(avgA, avgR, avgG, avgB));
+    }
+    // Aplicativos --------------------------------------------------------------------------------
     private void PegarApps()
     {
         gdApps.Children.Clear();
@@ -433,7 +507,6 @@ public partial class MainWindow : Window
         pop = null;
         CriarDetectarCliqueForaPopup(false);
     }
-
     private void BtnAbrirAplicativos(object sender, EventArgs e, int id = 0)
     {
         Grid gd = sender as Grid;
@@ -499,6 +572,20 @@ public partial class MainWindow : Window
             gdPnlApps.BeginAnimation(FrameworkElement.MarginProperty, animation);
         });
     }
+    private void VisualizarEscolhaViaControle()
+    {
+        this.Dispatcher.Invoke(() =>
+        {
+            List<Grid> ctrls = new List<Grid>();
+            foreach (Grid ctrl in gdApps.Children)
+            {
+                ctrls.Add(ctrl);
+                ctrl.Background = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+            }
+            ctrls[(int)appAtual].Background = new SolidColorBrush(Color.FromArgb(67, 0, 0, 0));
+        });
+    }
+    // Atalhos ------------------------------------------------------------------------------------
     private void Cadastrar()
     {
         Cadastrar cad = new Cadastrar()
@@ -515,67 +602,6 @@ public partial class MainWindow : Window
 
         mainGrid.Children.Add(cad);
         Panel.SetZIndex(cad, 10);
-
-        PararPrograma();
-    }
-    private void Configurar()
-    {
-        Configurar config = new Configurar(pastaAtual, atalhosProximos)
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Name = "config"
-        };
-
-        config.OrdemAlterada += AtalhoPegarIds;
-        config.AtalhoAdicionado += CarregarAtalhosPastas; 
-        config.PastaRenomeada += CarregarAtalhosPastas;
-        config.FimConfiguracao += VoltarPrograma;
-        config.MonitorAlterado += TrocarMonitor;
-
-        mainGrid.RegisterName(config.Name, config);
-
-        mainGrid.Children.Add(config);
-        Panel.SetZIndex(config, 10);
-
-        PararPrograma();
-    }
-    private void TrocarMonitor(int idMonitor)
-    {
-        PicTransitionsCriar();
-        NativeMethods.MoveToMonitor(idMonitor, this);
-        Properties.Settings.Default.MonitorEmUso = idMonitor;
-        Properties.Settings.Default.Save();
-    }
-    private void CarregarAtalhosPastas()
-    {
-        atalhosProximosPastas = Atalhos.ConsultarPastas();
-
-        int proxPasta = pastaAtual;
-
-        int[] atalhosProximosPastasArray = atalhosProximosPastas.Select(a => a.getIdPasta()).ToArray();
-        proxPasta = AumentarIndice(proxPasta, atalhosProximosPastasArray);
-
-        atalhoProxPasta = atalhosProximosPastas.Find(atalho => atalho.getIdPasta() == proxPasta);
-
-        lblPastaAtual.Content = "Pasta: " + atalhosProximosPastas.Find(atalho => atalho.getIdPasta() == pastaAtual).getNomePasta();
-    }
-    private void BtnEditarAtalho(object sender, EventArgs e)
-    {
-        Cadastrar cadEdicao = new Cadastrar(idAtual, pastaAtual, 0)
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Name = "cadastro"
-        };
-
-        cadEdicao.atalhoCadastrado += (s, e) => AtalhoPegarIds();
-        cadEdicao.FimCadastro += VoltarPrograma;
-
-        mainGrid.RegisterName(cadEdicao.Name, cadEdicao);
-
-        mainGrid.Children.Add(cadEdicao);
-        Panel.SetZIndex(cadEdicao, 10);
 
         PararPrograma();
     }
@@ -616,6 +642,176 @@ public partial class MainWindow : Window
             MessageBox.Show($"Erro no botao de abrir atalho: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
+    private void BtnEditarAtalho(object sender, EventArgs e)
+    {
+        Cadastrar cadEdicao = new Cadastrar(idAtual, pastaAtual, 0)
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Name = "cadastro"
+        };
+
+        cadEdicao.atalhoCadastrado += (s, e) => AtalhoPegarIds();
+        cadEdicao.FimCadastro += VoltarPrograma;
+
+        mainGrid.RegisterName(cadEdicao.Name, cadEdicao);
+
+        mainGrid.Children.Add(cadEdicao);
+        Panel.SetZIndex(cadEdicao, 10);
+
+        PararPrograma();
+    }
+    private void BtnDeletarAtalho(object sender, EventArgs e)
+    {
+        Atalhos.Deletar(idAtual);
+
+        if (!GameNext())
+        {
+            GamePrev();
+        }
+
+        AtalhoPegarIds();
+    }
+    private void AbrirAtalho(string caminho, string diretorioTrabalho, string argumentacao, string permissao)
+    {
+        try
+        {
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = caminho,
+                WorkingDirectory = diretorioTrabalho,
+                Arguments = argumentacao,
+                Verb = permissao,
+                UseShellExecute = true
+            };
+            jogoAberto = Process.Start(psi);
+
+            string inicioSessao = DateTime.Now.ToString("dd/MM/yy - HH:mm");
+            Atalhos.SessaoIniciada(inicioSessao, idAtual);
+            this.Dispatcher.Invoke(new Action(() =>
+            {
+                lblDataSessao.Content = "Data: " + inicioSessao;
+            }));
+
+            PararPrograma();
+
+            MonitoramentoDeProcesos();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Erro ao abrir o atalho: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    private void AbrirEpicGames(string caminho, string diretorioTrabalho, string argumentacao, string permissao)
+    {
+        this.Topmost = true;
+        Process.Start(caminho);
+
+        System.Timers.Timer temporizadorEpicAberta = new System.Timers.Timer(7000);
+        temporizadorEpicAberta.Elapsed += (s, e) =>
+        {
+            var processosAtuais = Process.GetProcesses();
+            Process epic = null;
+            foreach (var processo in processosAtuais)
+            {
+                if (processo.ProcessName.ToLower().Contains("epicgameslauncher"))
+                {
+                    epic = processo;
+                    break;
+                }
+            }
+            if (epic != null)
+            {
+                temporizadorEpicAberta.Enabled = false;
+                this.Topmost = false;
+                epic.CloseMainWindow();
+                AbrirAtalho(caminho, diretorioTrabalho, argumentacao, permissao);
+            }
+            else
+            {
+                MessageBox.Show("Epic Games Launcher não foi encontrado.");
+            }
+        };
+
+        temporizadorEpicAberta.Enabled = true;
+
+    }
+    private string GetEpicGames()
+    {
+        string registryKey = @"HKEY_CLASSES_ROOT\com.epicgames.launcher\shell\open\command";
+
+        string command = (string)Registry.GetValue(registryKey, null, string.Empty);
+
+        if (!string.IsNullOrEmpty(command))
+        {
+            string[] parts = command.Split(" %");
+
+            string commandToRun = parts[0].Trim();
+
+            return commandToRun;
+        }
+
+        return null;
+    }
+    private void AtalhoListar(int idatual)
+    {
+        this.Dispatcher.Invoke(() => {
+            atalhoAtual = atalhosProximos.Find(atalho => atalho.getIdAtalho() == idAtual);
+
+            lblNomeAtalho.Content = atalhoAtual.getNomeAtalho();
+            lblCaminhoAtalho.Content = atalhoAtual.getCaminhoAtalho();
+
+            lblDataSessao.Content = "Data: " + atalhoAtual.getDataSessaoAtalho();
+            lblTempoSessao.Content = "Durou: " + atalhoAtual.getTempoSessaoAtalho();
+
+            PicDefinirCorDeFundo(atalhoAtual.getImgAtalho());
+
+            picIconAtalho.Source = atalhoAtual.getIconeAtalho();
+        });
+    }
+    private bool GameNext()
+    {
+        if (trocandoImage) return false;
+        int indiceAtual = ids.IndexOf(idAtual);
+        if (indiceAtual < ids.Count - 1)
+        {
+            this.Dispatcher.Invoke(() => {
+                trocandoImage = true;
+                TransicaoImageAtalho(false);
+                idAtual = (int)ids[indiceAtual + 1];
+                AtalhoListar(idAtual);
+
+                Properties.Settings.Default.IdUltimoJogo = idAtual;
+                Properties.Settings.Default.Save();
+
+                return true;
+            });
+        }
+
+        return false;
+    }
+    private bool GamePrev()
+    {
+        if (trocandoImage) return false;
+
+        int indiceAtual = ids.IndexOf(idAtual);
+        if (indiceAtual > 0)
+        {
+            this.Dispatcher.Invoke(() => {
+                trocandoImage = true;
+                TransicaoImageAtalho(true);
+                idAtual = (int)ids[indiceAtual - 1];
+                AtalhoListar(idAtual);
+
+                Properties.Settings.Default.IdUltimoJogo = idAtual;
+                Properties.Settings.Default.Save();
+
+                return true;
+            });
+        }
+        return false;
+    }
+    // Jogo ---------------------------------------------------------------------------------------
     private void RestaurarPlayOS(object sender, EventArgs e)
     {
         this.Dispatcher.Invoke(() => {
@@ -671,6 +867,22 @@ public partial class MainWindow : Window
             }
         }
     }
+    private bool IgnorarProcesso(Process processo)
+    {
+        try
+        {
+            string[] processosIgnorados = { "devenv", "riot", "notepad", "chrome", "firefox", "opera", "spotify", "edge", "steam", "textinput", "code", "xbox", "dwm", "taskmgr", "protected", "ludoh", "discord", "settings", "explorer", "svchost", "dllhost", "taskhost", "service", "application", "explorer", "window", "DS4" };
+
+            if (processosIgnorados.Any(nome => processo.ProcessName.ToLower().Contains(nome)))
+                return true;
+
+            return processo.MainWindowHandle == IntPtr.Zero;
+        }
+        catch
+        {
+            return true;
+        }
+    }
     private void PicGIFAbrindoJogo()
     {
         var image = new Image()
@@ -691,7 +903,8 @@ public partial class MainWindow : Window
     }
     private void PicGIFRemover()
     {
-        try {
+        try
+        {
             mainGrid.Dispatcher.Invoke(() =>
             {
                 Image specificImage = mainGrid.Children.OfType<Image>().FirstOrDefault(img => img.Name == "GifImage");
@@ -727,7 +940,6 @@ public partial class MainWindow : Window
                 jogoAberto = null;
                 this.Show();
                 this.WindowState = WindowState.Maximized;
-                //RemoverNotificacao();
 
                 VoltarPrograma();
 
@@ -743,6 +955,28 @@ public partial class MainWindow : Window
             });
         }
     }
+    private void PararPrograma()
+    {
+        PicControlON.Source = null;
+        controle?.timerControle.Stop();
+        controlesFuncionando = false;
+
+        TrayIcon.Visibility = Visibility.Visible;
+    }
+    private void VoltarPrograma()
+    {
+        PicControlON.Source = new BitmapImage(Referencias.controlOn);
+        controle?.timerControle.Start();
+        if (controle == null) { PicControlON.Source = null; }
+        controlesFuncionando = true;
+
+        TrayIcon.Visibility = Visibility.Collapsed;
+    }
+    // Bandeja ------------------------------------------------------------------------------------
+    private void BtnMandarPraBandeja(object sender, EventArgs e)
+    {
+        MandarPraBandeja();
+    }
     private void MandarPraBandeja()
     {
         this.Dispatcher.Invoke(() => {
@@ -753,7 +987,7 @@ public partial class MainWindow : Window
                 timerProcessoEstabilizar.Enabled = false;
                 abrindoOJogo = false;
             }
-            
+
             btnAbrir.Content = "Voltar ao jogo";
             btnAbrir.Click -= BtnAbrirAtalho;
             btnAbrir.Click += BtnMandarPraBandeja;
@@ -768,170 +1002,94 @@ public partial class MainWindow : Window
     {
         System.Windows.Application.Current.Shutdown();
     }
-    private void PararPrograma()
+    // Pastas -------------------------------------------------------------------------------------
+    private void CarregarAtalhosPastas()
     {
-        PicControlON.Source = null;
-        controle?.timerControle.Stop();
-        controlesFuncionando = false;
+        atalhosProximosPastas = Atalhos.ConsultarPastas();
 
-        TrayIcon.Visibility = Visibility.Visible;
-    }
-    private void VoltarPrograma()
-    {
-        PicControlON.Source = new BitmapImage(Referencias.controlOn);
-        controle?.timerControle.Start();
-        if(controle == null) { PicControlON.Source = null; }
-        controlesFuncionando = true;
+        int proxPasta = pastaAtual;
 
-        TrayIcon.Visibility = Visibility.Collapsed;
-    }
-    private void BtnMandarPraBandeja(object sender, EventArgs e)
-    {
-        MandarPraBandeja();
-    }
+        int[] atalhosProximosPastasArray = atalhosProximosPastas.Select(a => a.getIdPasta()).ToArray();
+        proxPasta = AumentarIndice(proxPasta, atalhosProximosPastasArray);
 
-    private bool IgnorarProcesso(Process processo)
+        atalhoProxPasta = atalhosProximosPastas.Find(atalho => atalho.getIdPasta() == proxPasta);
+
+        lblPastaAtual.Content = "Pasta: " + atalhosProximosPastas.Find(atalho => atalho.getIdPasta() == pastaAtual).getNomePasta();
+    }
+    private void Apresentacao(string nome = "", int indice = -1)
     {
-        try
+        lblApresentacao.Content = nome;
+        Panel.SetZIndex(recApresentacao, indice);
+        Panel.SetZIndex(lblApresentacao, indice);
+    }
+    // Configuracoes ------------------------------------------------------------------------------
+    private void TrocarMonitor(int idMonitor)
+    {
+        PicTransitionsCriar();
+        NativeMethods.MoveToMonitor(idMonitor, this);
+        Properties.Settings.Default.MonitorEmUso = idMonitor;
+        Properties.Settings.Default.Save();
+    }
+    private void Configurar()
+    {
+        Configurar config = new Configurar(pastaAtual, atalhosProximos)
         {
-            string[] processosIgnorados = { "devenv", "riot", "notepad", "chrome", "firefox", "opera", "spotify", "edge", "steam", "textinput", "code", "xbox", "dwm", "taskmgr", "protected", "ludoh", "discord", "settings", "explorer", "svchost", "dllhost", "taskhost", "service", "application", "explorer", "window", "DS4" };
-
-            if (processosIgnorados.Any(nome => processo.ProcessName.ToLower().Contains(nome)))
-                return true;
-
-            return processo.MainWindowHandle == IntPtr.Zero;
-        }
-        catch
-        {
-            return true;
-        }
-    }
-    private string GetEpicGames()
-    {
-        string registryKey = @"HKEY_CLASSES_ROOT\com.epicgames.launcher\shell\open\command";
-
-        string command = (string)Registry.GetValue(registryKey, null, string.Empty);
-
-        if (!string.IsNullOrEmpty(command))
-        {
-            string[] parts = command.Split(" %");
-
-            string commandToRun = parts[0].Trim();
-
-            return commandToRun;
-        }
-
-        return null;
-    }
-    private void AbrirEpicGames(string caminho, string diretorioTrabalho, string argumentacao, string permissao)
-    {
-        this.Topmost = true;
-        Process.Start(caminho);
-
-        System.Timers.Timer temporizadorEpicAberta = new System.Timers.Timer(7000);
-        temporizadorEpicAberta.Elapsed += (s, e) =>
-        {
-            var processosAtuais = Process.GetProcesses();
-            Process epic = null;
-            foreach (var processo in processosAtuais)
-            {
-                if (processo.ProcessName.ToLower().Contains("epicgameslauncher"))
-                {
-                    epic = processo;
-                    break;
-                }
-            }
-            if (epic != null)
-            {
-                temporizadorEpicAberta.Enabled = false;
-                this.Topmost = false;
-                epic.CloseMainWindow();
-                AbrirAtalho(caminho, diretorioTrabalho, argumentacao, permissao);
-            }
-            else
-            {
-                MessageBox.Show("Epic Games Launcher não foi encontrado.");
-            }
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Name = "config"
         };
 
-        temporizadorEpicAberta.Enabled = true;
+        config.OrdemAlterada += AtalhoPegarIds;
+        config.AtalhoAdicionado += CarregarAtalhosPastas;
+        config.PastaRenomeada += CarregarAtalhosPastas;
+        config.FimConfiguracao += VoltarPrograma;
+        config.MonitorAlterado += TrocarMonitor;
 
+        mainGrid.RegisterName(config.Name, config);
+
+        mainGrid.Children.Add(config);
+        Panel.SetZIndex(config, 10);
+
+        PararPrograma();
     }
-    private void AbrirAtalho(string caminho, string diretorioTrabalho, string argumentacao, string permissao)
+    private void SetUAC(int enable)
     {
+        if (!IsAdministrator())
+        {
+            MessageBox.Show("Execute o programa como administrador rra alterar o UAC.", "Permissão Necessária", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         try
         {
-            ProcessStartInfo psi = new ProcessStartInfo
+            const string keyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
+            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(keyPath, true))
             {
-                FileName = caminho,
-                WorkingDirectory = diretorioTrabalho,
-                Arguments = argumentacao,
-                Verb = permissao,
-                UseShellExecute = true
-            };
-            jogoAberto = Process.Start(psi);
-
-            string inicioSessao = DateTime.Now.ToString("dd/MM/yy - HH:mm");
-            Atalhos.SessaoIniciada(inicioSessao, idAtual);
-            this.Dispatcher.Invoke(new Action(() =>
-            {
-                lblDataSessao.Content = "Data: " + inicioSessao;
-            }));
-
-            PararPrograma();
-
-            MonitoramentoDeProcesos();
+                if (key != null)
+                {
+                    key.SetValue("EnableLUA", enable, RegistryValueKind.DWord);
+                    MessageBox.Show($"UAC {(enable == 1 ? "ativado" : "desativado")}. Reinicie o computador para aplicar as mudanças.", "Alteração Bem-sucedida", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Não foi possível acessar o registro.", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Erro ao abrir o atalho: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"Erro ao alterar o UAC: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
-    private void AoCarregar(object sender, EventArgs e)
+    private bool IsAdministrator()
     {
-        NativeMethods.MoveToMonitor(Properties.Settings.Default.MonitorEmUso, this);
-        if (atalhoAtual != null)
+        using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
         {
-            PicImgAtalhoAtual.Source = atalhoAtual.getImgAtalho();
-            PicDefinirCorDeFundo(atalhoAtual.getImgAtalho());
-            PicTransitionsCriar();
-
-            CarregarAtalhosPastas();
+            WindowsPrincipal principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
-        PegarApps();
-        InicializarControle();
-        NativeMethods.RegisterForDeviceNotifications(this, IntPtr.Zero);
-
-        var rectGeometry = new RectangleGeometry
-        {
-            Rect = new Rect(0, -30, mainGrid.ActualWidth, 245),
-            RadiusX = 20,
-            RadiusY = 20
-        };
-        recPnlApp.Clip = rectGeometry;
-
-        var source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
-        source.AddHook(WndProc);
-
-        NativeMethods.RegisterHotKey(new WindowInteropHelper(this).Handle, 9000, MOD_CONTROL | MOD_ALT, VK_T);
-        NativeMethods.RegisterHotKey(new WindowInteropHelper(this).Handle, 9001, MOD_CONTROL, VK_NUMPAD5);
-        NativeMethods.RegisterHotKey(new WindowInteropHelper(this).Handle, 9002, MOD_ALT, VK_NUMPAD5);
     }
-
-    private void VisualizarEscolhaViaControle()
-    {
-        this.Dispatcher.Invoke(() =>
-        {
-            List<Grid> ctrls = new List<Grid>();
-            foreach (Grid ctrl in gdApps.Children)
-            {
-                ctrls.Add(ctrl);
-                ctrl.Background = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
-            }
-            ctrls[(int)appAtual].Background = new SolidColorBrush(Color.FromArgb(67, 0, 0, 0));
-        });
-    }
-
+    // Imagens ------------------------------------------------------------------------------------
     private void PicTransitionsCriar()
     {
         int widthpic = (int)mainGrid.ActualWidth;
@@ -950,9 +1108,6 @@ public partial class MainWindow : Window
             if (dir == false) { img = PicImgAtalhoPrev; }
 
             Atalhos atalhoProximo = atalhosProximos.Find(atalho => atalho.getOrdemAtalho() == atalhoAtual.getOrdemAtalho() + num);
-            /*MessageBox.Show(string.Join(", ", atalhosProximos.Select(att => att.getNomeAtalho())));
-            MessageBox.Show(string.Join(", ", atalhosProximos.Select(att => att.getIdAtalho())));
-            MessageBox.Show(string.Join(", ", atalhosProximos.Select(att => att.getOrdemAtalho())));*/
             if (atalhoProximo != null) { img.Source = atalhoProximo.getImgAtalho(); }
 
             ThicknessAnimation animation = new ThicknessAnimation
@@ -977,7 +1132,7 @@ public partial class MainWindow : Window
                 Apresentacao(atalhoProxPasta.getNomePasta(), 99);
                 lblPastaAtual.Content = "Pasta: " + atalhoProxPasta.getNomePasta();
 
-                if (atalhoProxPasta != null) { PicImgAtalhoNovaPasta.Source = atalhoProxPasta.getImgAtalho(); } //Arrumar para impedir que idatual ou pastaatual seja invalido
+                if (atalhoProxPasta != null) { PicImgAtalhoNovaPasta.Source = atalhoProxPasta.getImgAtalho(); }
 
                 ThicknessAnimation animation = new ThicknessAnimation
                 {
@@ -1001,8 +1156,6 @@ public partial class MainWindow : Window
         if (img == PicImgAtalhoProx) { tamanhopic = tamanhopic * -1; }
 
         PicImgAtalhoAtual.Source = atalhoAtual.getImgAtalho();
-
-        //MessageBox.Show(atalhoAtual.getNomeAtalho() + " " + atalhoAtual.getIdAtalho() + " " + atalhoAtual.getOrdemAtalho());
 
         img.Margin = new Thickness(tamanhopic, 0, -tamanhopic, 0);
 
@@ -1045,147 +1198,7 @@ public partial class MainWindow : Window
 
         Apresentacao();
     }
-    private int AumentarIndice(int i, int[] a)
-    {
-        if (Array.IndexOf(a, i) == a.Length - 1)
-        {
-            i = a[0];
-        }
-        else
-        {
-            i += 1;
-        }
-        return i;
-    }
-    private void Apresentacao (string nome = "", int indice = -1)
-    {
-        lblApresentacao.Content = nome;
-        Panel.SetZIndex(recApresentacao, indice);
-        Panel.SetZIndex(lblApresentacao, indice);
-    }
-    private void BtnDeletarAtalho(object sender, EventArgs e)
-    {
-        Atalhos.Deletar(idAtual);
-
-        if (!GameNext())
-        {
-            GamePrev();
-        }
-
-        AtalhoPegarIds();
-    }
-    private bool GameNext()
-    {
-        if (trocandoImage) return false;
-        int indiceAtual = ids.IndexOf(idAtual);
-        if (indiceAtual < ids.Count - 1)
-        {
-            this.Dispatcher.Invoke(() => {
-                trocandoImage = true;
-                TransicaoImageAtalho(false);
-                idAtual = (int)ids[indiceAtual + 1];
-                AtalhoListar(idAtual);
-
-                Properties.Settings.Default.IdUltimoJogo = idAtual;
-                Properties.Settings.Default.Save();
-
-                return true;
-            });
-        }
-
-        return false;
-    }
-    private bool GamePrev()
-    {
-        if (trocandoImage) return false;
-
-        int indiceAtual = ids.IndexOf(idAtual);
-        if (indiceAtual > 0)
-        {
-            this.Dispatcher.Invoke(() => {
-                trocandoImage = true;
-                TransicaoImageAtalho(true);
-                idAtual = (int)ids[indiceAtual - 1];
-                AtalhoListar(idAtual);
-
-                Properties.Settings.Default.IdUltimoJogo = idAtual;
-                Properties.Settings.Default.Save();
-
-                return true;
-            });
-        }
-        return false;
-    }
-    private void AtalhoPegarIds()
-    {
-        ids.Clear();
-        try
-        {
-            ids = Atalhos.ConsultarIDs(pastaAtual);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Erro ao listar ids: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-
-        if (ids.Count > 0)
-        {
-            if (!ids.Contains(idAtual)) { idAtual = (int)ids[0]; }
-            atalhosProximos = Atalhos.ConsultarAtalhos(ids, pastaAtual);
-            AtalhoListar(idAtual);
-        }
-        else
-        {
-            Cadastrar();
-        }
-    }
-    private void AtalhoListar(int idatual)
-    {
-        this.Dispatcher.Invoke(() => {
-            atalhoAtual = atalhosProximos.Find(atalho => atalho.getIdAtalho() == idAtual);
-
-            lblNomeAtalho.Content = atalhoAtual.getNomeAtalho();
-            lblCaminhoAtalho.Content = atalhoAtual.getCaminhoAtalho();
-
-            lblDataSessao.Content = "Data: " + atalhoAtual.getDataSessaoAtalho();
-            lblTempoSessao.Content = "Durou: " + atalhoAtual.getTempoSessaoAtalho();
-
-            PicDefinirCorDeFundo(atalhoAtual.getImgAtalho());
-
-            picIconAtalho.Source = atalhoAtual.getIconeAtalho();
-        });
-    }
-    private void PicDefinirCorDeFundo(BitmapImage bitmapImage)
-    {
-        WriteableBitmap writeableBitmap = new WriteableBitmap(bitmapImage);
-
-        long totalR = 0, totalG = 0, totalB = 0, totalA = 0;
-        int totalPixels = writeableBitmap.PixelWidth * writeableBitmap.PixelHeight;
-
-        int stride = writeableBitmap.PixelWidth * 4;
-        byte[] pixelData = new byte[writeableBitmap.PixelHeight * stride];
-        writeableBitmap.CopyPixels(pixelData, stride, 0);
-
-        for (int i = 0; i < pixelData.Length; i += 4)
-        {
-            byte a = pixelData[i + 3];
-            byte r = pixelData[i + 2];
-            byte g = pixelData[i + 1];
-            byte b = pixelData[i];     
-
-            totalA += a;
-            totalR += r;
-            totalG += g;
-            totalB += b;
-        }
-
-        byte avgA = (byte)(totalA / totalPixels);
-        byte avgR = (byte)(totalR / totalPixels);
-        byte avgG = (byte)(totalG / totalPixels);
-        byte avgB = (byte)(totalB / totalPixels);
-
-        this.Background = new SolidColorBrush(Color.FromArgb(avgA, avgR, avgG, avgB));
-    }
+    // Data e hora --------------------------------------------------------------------------------
     private void CriarRelogio()
     {
         horario = DateTime.Now;
@@ -1225,44 +1238,30 @@ public partial class MainWindow : Window
             temporizadorDoRelogio.Enabled = true;
         }
     }
-    private void SetUAC(int enable)
+    // Controles ----------------------------------------------------------------------------------
+    private void InicializarControle()
     {
-        if (!IsAdministrator())
+        DirectInput _directInput = new DirectInput();
+        var joystickGuid = Guid.Empty;
+
+        foreach (var deviceInstance in _directInput.GetDevices(DeviceType.Gamepad, DeviceEnumerationFlags.AttachedOnly))
         {
-            MessageBox.Show("Execute o programa como administrador rra alterar o UAC.", "Permissão Necessária", MessageBoxButton.OK, MessageBoxImage.Warning);
+            joystickGuid = deviceInstance.InstanceGuid;
+        }
+
+        if (joystickGuid == Guid.Empty)
+        {
             return;
         }
 
-        try
-        {
-            const string keyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
-            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(keyPath, true))
-            {
-                if (key != null)
-                {
-                    key.SetValue("EnableLUA", enable, RegistryValueKind.DWord);
-                    MessageBox.Show($"UAC {(enable == 1 ? "ativado" : "desativado")}. Reinicie o computador para aplicar as mudanças.", "Alteração Bem-sucedida", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("Não foi possível acessar o registro.", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Erro ao alterar o UAC: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        Joystick _joystick = new Joystick(_directInput, joystickGuid);
+        _joystick.Acquire();
+
+        if (controle != null) LimparComandos();
+        controle = new Controle();
+        controle = new Controle(_joystick);
+        DefinirComandos();
     }
-    private bool IsAdministrator()
-    {
-        using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
-        {
-            WindowsPrincipal principal = new WindowsPrincipal(identity);
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
-        }
-    }
-    // Controles ----------------------------------------------------------------------------------
     private void LimparComandos()
     {
         controle.controlDisconnect -= TirarIconControle;

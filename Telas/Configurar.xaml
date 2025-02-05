@@ -10,24 +10,7 @@
         <Rectangle Height="49" Stroke="#FF151617" VerticalAlignment="Top" Fill="#FF151617"/>
         <Label x:Name="lblNomeAtalho_Copiar" Content="LudoHive - Configurações" Margin="10,6,0,0" VerticalAlignment="Top" Foreground="Silver" FontSize="25" HorizontalAlignment="Left" FontFamily="Segoe UI Black"/>
         <Rectangle Stroke="#FF1B1C1D" Fill="#FF1B1C1D" Margin="0,49,0,0" Height="34" VerticalAlignment="Top"/>
-        <Button x:Name="btnPageAtalho" Content="Atalho" HorizontalAlignment="Left" Margin="22,51,0,0" VerticalAlignment="Top" Background="#FF2C2C2C" BorderBrush="#FF2C2C2C" Height="30" Width="102" Foreground="Silver">
-            <Button.Style>
-                <Style TargetType="Button">
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="BorderBrush" Value="Transparent"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </Button.Style>
-        </Button>
-        <Button x:Name="btnPageApp" Content="Aplicativo" HorizontalAlignment="Left" Margin="140,51,0,0" VerticalAlignment="Top" Background="#FF2C2C2C" BorderBrush="#FF2C2C2C" Height="30" Width="102" Foreground="Silver">
+        <Button x:Name="btnPageAtalho" Content="Geral" HorizontalAlignment="Left" Margin="22,51,0,0" VerticalAlignment="Top" Background="#FF2C2C2C" BorderBrush="#FF2C2C2C" Height="30" Width="102" Foreground="Silver">
             <Button.Style>
                 <Style TargetType="Button">
                     <Setter Property="Background" Value="Transparent"/>

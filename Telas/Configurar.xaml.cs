@@ -15,9 +15,11 @@ namespace LudoHive.Telas
         // Valores Configuracoes ======
         private string navegadorEmUso = Properties.Settings.Default.NavegadorEmUso;
         private bool fecharNavegador = Properties.Settings.Default.FecharNavegador;
+        // Valores chave ==============
         private int idPastaAtual;
         private int idPastaEdit;
         private List<int> idsAtalhosParaPasta = new List<int>();
+        // Eventos ====================
         public event Action<int> MonitorAlterado; 
         public event Action OrdemAlterada;
         public event Action AtalhoAdicionado;
@@ -37,7 +39,7 @@ namespace LudoHive.Telas
 
             CriarPastaOrd();
         }
-        // Configurações --------------------------------------------------------------------------
+        // Geral ----------------------------------------------------------------------------------
         private void DefinirGatilhos()
         {
             this.Loaded += AoCarregar;
@@ -88,6 +90,50 @@ namespace LudoHive.Telas
             }
             sttbtnMonitor.Estados = els;
         }
+        private void CarregarConfigs()
+        {
+            txtbxNavegadorPadrao.Texto = navegadorEmUso;
+            tgbtnFecharDpsPesquisa.IsTrue = fecharNavegador;
+        }
+        public void FecharConfiguracoes()
+        {
+            if (this.Parent is Grid grid)
+            {
+                grid.Children.Remove(this);
+                grid.UnregisterName(this.Name);
+                FimConfiguracao?.Invoke();
+            }
+        }
+        private string GetDefaultBrowserPath()
+        {
+            string browserPath = string.Empty;
+
+            string userChoicePath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice";
+
+            string progId = Registry.GetValue(userChoicePath, "ProgId", null) as string;
+
+            if (string.IsNullOrEmpty(progId))
+                throw new Exception("Navegador padrão não encontrado.");
+
+            string browserRegPath = $@"HKEY_CLASSES_ROOT\{progId}\shell\open\command";
+            browserPath = Registry.GetValue(browserRegPath, null, null) as string;
+
+            if (string.IsNullOrEmpty(browserPath))
+                throw new Exception("Caminho do navegador padrão não encontrado.");
+
+            int firstQuote = browserPath.IndexOf('"');
+            if (firstQuote >= 0)
+            {
+                int secondQuote = browserPath.IndexOf('"', firstQuote + 1);
+                if (secondQuote > firstQuote)
+                {
+                    browserPath = browserPath.Substring(firstQuote + 1, secondQuote - firstQuote - 1);
+                }
+            }
+
+            return browserPath;
+        }
+        // Tabela ---------------------------------------------------------------------------------
         private void MostrarTabela()
         {
             double largura = 0;
@@ -188,6 +234,7 @@ namespace LudoHive.Telas
 
             FecharConfiguracoes();
         }
+        // Edicao Atalhos -------------------------------------------------------------------------
         private void BtnSalvarOrdAtalhos(List<int> listaOrdem)
         {
             if (tgbtnAdicionarAtalhos.IsTrue) 
@@ -252,6 +299,28 @@ namespace LudoHive.Telas
                 }
             }
         }
+        private void CriarOrd(int idPasta = 1, List<Atalhos> atts = null)
+        {
+            ordAtalhosExibicao.Atts = new List<Elementos>();
+
+            List<Elementos> elms = new List<Elementos>();
+
+            if (atts == null) atts = Atalhos.ConsultarAtalhos(tgbtnAdicionarAtalhos.IsTrue ? Atalhos.ConsultarIDsFaltantes(idPasta) : Atalhos.ConsultarIDs(idPasta), tgbtnAdicionarAtalhos.IsTrue ? 0 : idPasta);
+
+            foreach (Atalhos att in atts)
+            {
+                Elementos elm = new Elementos()
+                {
+                    Nome = att.getNomeAtalho(),
+                    Id = att.getIdAtalho(),
+                    Icone = att.getIconeAtalho(),
+                    Ordem = att.getOrdemAtalho()
+                };
+                elms.Add(elm);
+            }
+            ordAtalhosExibicao.Atts = elms;
+        }
+        // Edicao Pasta ---------------------------------------------------------------------------
         private void SelecionarPasta(int idPasta, int ordemPasta, LabelCRUD lbl)
         {
             if (idPastaAtual != idPasta)
@@ -327,27 +396,6 @@ namespace LudoHive.Telas
                 txtbxNomePasta.EnterPressed -= criar ? CriarPasta : EditarPasta;
             }
         }
-        private void CriarOrd(int idPasta = 1, List<Atalhos> atts = null)
-        {
-            ordAtalhosExibicao.Atts = new List<Elementos>();
-
-            List<Elementos> elms = new List<Elementos>();
-
-            if (atts == null) atts = Atalhos.ConsultarAtalhos(tgbtnAdicionarAtalhos.IsTrue ? Atalhos.ConsultarIDsFaltantes(idPasta): Atalhos.ConsultarIDs(idPasta), tgbtnAdicionarAtalhos.IsTrue ? 0 : idPasta);
-
-            foreach (Atalhos att in atts)
-            {
-                Elementos elm = new Elementos()
-                {
-                    Nome = att.getNomeAtalho(),
-                    Id = att.getIdAtalho(),
-                    Icone = att.getIconeAtalho(),
-                    Ordem = att.getOrdemAtalho()
-                };
-                elms.Add(elm);
-            }
-            ordAtalhosExibicao.Atts = elms;
-        }
         private void AlterarPastaOrd(int idPasta, List<Atalhos> atts = null)
         {
             idPastaAtual = idPasta;
@@ -371,11 +419,7 @@ namespace LudoHive.Telas
             }
             ordPastas.Atts = elms;
         }
-        private void CarregarConfigs()
-        {
-            txtbxNavegadorPadrao.Texto = navegadorEmUso;
-            tgbtnFecharDpsPesquisa.IsTrue = fecharNavegador;
-        }
+        // Configuracoes --------------------------------------------------------------------------
         private void SalvarConfiguracoes()
         {
             Properties.Settings.Default.NavegadorEmUso = navegadorEmUso;
@@ -390,44 +434,6 @@ namespace LudoHive.Telas
             fecharNavegador = false;
 
             CarregarConfigs();
-        }
-        public void FecharConfiguracoes()
-        {
-            if (this.Parent is Grid grid)
-            {
-                grid.Children.Remove(this);
-                grid.UnregisterName(this.Name);
-                FimConfiguracao?.Invoke();
-            }
-        }
-        private string GetDefaultBrowserPath()
-        {
-            string browserPath = string.Empty;
-
-            string userChoicePath = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice";
-
-            string progId = Registry.GetValue(userChoicePath, "ProgId", null) as string;
-
-            if (string.IsNullOrEmpty(progId))
-                throw new Exception("Navegador padrão não encontrado.");
-
-            string browserRegPath = $@"HKEY_CLASSES_ROOT\{progId}\shell\open\command";
-            browserPath = Registry.GetValue(browserRegPath, null, null) as string;
-
-            if (string.IsNullOrEmpty(browserPath))
-                throw new Exception("Caminho do navegador padrão não encontrado.");
-
-            int firstQuote = browserPath.IndexOf('"');
-            if (firstQuote >= 0)
-            {
-                int secondQuote = browserPath.IndexOf('"', firstQuote + 1);
-                if (secondQuote > firstQuote)
-                {
-                    browserPath = browserPath.Substring(firstQuote + 1, secondQuote - firstQuote - 1);
-                }
-            }
-
-            return browserPath;
         }
     }
 }

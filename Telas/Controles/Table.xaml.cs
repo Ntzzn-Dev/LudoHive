@@ -109,6 +109,7 @@ namespace LudoHive.Telas.Controles
             {
                 _corFundoTbl = value;
                 gdFundo.Background = new SolidColorBrush(_corFundoTbl);
+                gdScroll.Background = new SolidColorBrush(_corFundoTbl);
             }
         }
         public Color CorCabecalhoTbl
@@ -151,8 +152,10 @@ namespace LudoHive.Telas.Controles
             {
                 scrElementos.Maximum = gdFundo.ActualHeight - this.ActualHeight;
                 gdScroll.Height = this.ActualHeight;
-
-                if (true)
+                
+            };
+            gdScroll.SizeChanged += (s, e) => {
+                if (gdScroll.ActualHeight < gdFundo.ActualHeight)
                     scrElementos.Visibility = Visibility.Visible;
                 else
                     scrElementos.Visibility = Visibility.Collapsed;
@@ -369,8 +372,8 @@ namespace LudoHive.Telas.Controles
                 Width = 200,
                 CorTexto = CorFonteTbl,
                 Arredondamento = 1,
-                Estados = estados,
                 EstadoAtual = estadoAtual,
+                Estados = estados,
                 CorBtn = CorFundoTbl
             };
 

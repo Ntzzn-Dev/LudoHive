@@ -224,7 +224,7 @@
         </Style>
 
     </UserControl.Resources>
-    <Grid x:Name="gdScroll" Background="#FFF50000" ClipToBounds="True">
+    <Grid x:Name="gdScroll" Background="#FF272727" ClipToBounds="True">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*"  />

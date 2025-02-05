@@ -48,7 +48,9 @@ namespace LudoHive.Telas
                     break;
             }
         }
-        //Primeira aba - Atalhos
+
+        //Primeira aba - Atalhos ------------------------------------------------------------------
+
         private void SalvarAtalho()
         {
             Atalhos atl = new Atalhos();
@@ -203,7 +205,7 @@ namespace LudoHive.Telas
             }
         }
 
-        //Segunda Aba - Aplicativos
+        //Segunda Aba - Aplicativos ---------------------------------------------------------------
 
         private void SalvarApp()
         {
@@ -264,7 +266,7 @@ namespace LudoHive.Telas
             }
         }
 
-        //Meio Termo - Atalhos e Aplicativos
+        //Meio Termo - Atalhos e Aplicativos ------------------------------------------------------
 
         public void DefinirGatilhos()
         {
