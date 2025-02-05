@@ -448,20 +448,4 @@ namespace LudoHive.Telas.Controles
             }
         }
     }
-    [TypeConverter(typeof(ExpandableObjectConverter))]
-    public class Elementos
-    {
-        public string Nome { get; set; } = string.Empty;
-        public int Id { get; set; } = 0;
-        public int Ordem { get; set; } = 0;
-        public BitmapImage Icone { get; set; } = null;
-        public Elementos()
-        {
-
-        }
-        public override string ToString()
-        {
-            return Nome;
-        }
-    }
 }

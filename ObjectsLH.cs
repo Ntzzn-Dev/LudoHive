@@ -2,6 +2,7 @@
 using SharpDX.DirectInput;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
@@ -12,8 +13,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using static LudoHive.NativeMethods;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace LudoHive
 {
@@ -221,19 +224,19 @@ namespace LudoHive
 
     public class Atalhos
     {
-        private int id;
-        private int ordemDaPastaAtual;
-        private string nome;
-        private string caminho;
-        private string parametro;
-        private BitmapImage img;
-        private BitmapImage icon;
-        private string dataUltimaSessao;
-        private string tempoUltimaSessao;
+        public int id { get; set; }
+        public int ordemDaPastaAtual { get; set; }
+        public string nome { get; set; }
+        public string caminho { get; set; }
+        public string parametro { get; set; }
+        public BitmapImage img { get; set; }
+        public BitmapImage icon { get; set; }
+        public string dataUltimaSessao { get; set; }
+        public string tempoUltimaSessao { get; set; }
 
-        private int idPasta;
-        private string nomePasta;
-        private int ordemPasta;
+        public int idPasta { get; set; }
+        public string nomePasta { get; set; }
+        public int ordemPasta { get; set; }
 
         public Atalhos()
         {
@@ -342,7 +345,6 @@ namespace LudoHive
                         }
                         else
                         {
-                            // Caso não tenha retornado nenhum valor, você pode definir uma lógica alternativa
                             MessageBox.Show("Nenhum ID foi retornado.", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
@@ -352,8 +354,22 @@ namespace LudoHive
                     {
                         command.Parameters.AddWithValue("@idPasta", idPasta);
                         command.Parameters.AddWithValue("@idAtalho", idAtalho);
-                    command.ExecuteNonQuery();
+                        command.ExecuteNonQuery();
                     }
+
+                    Jogos jg = new()
+                    {
+                        id = (int)idAtalho,
+                        nome = nome,
+                        icon = atalhoParaSalvamento.getIconeAtalho(),
+                        tempoUltimaSessao = tempoSessao,
+                        tempoTodasSessoes = tempoSessao,
+                        dataPrimeiraSessao = dataSessao,
+                        dataUltimaSessao = dataSessao,
+                        status = 0
+                    };
+
+                    Jogos.Salvar(jg);
                 }
             }
             catch (Exception ex)
@@ -601,6 +617,7 @@ namespace LudoHive
                     }
                     connection.Close();
                 }
+                Jogos.SessaoIniciada(dataInicio, idatual);
             }
             catch (Exception ex)
             {
@@ -643,7 +660,10 @@ namespace LudoHive
                         command.Parameters.AddWithValue("@id", idatual);
                         command.ExecuteNonQuery();
                     }
+
                     connection.Close();
+
+                    Jogos.SessaoFinalizada(duracaoSessao, horasAcumuladas, idatual);
                 }
             }
             catch (Exception ex)
@@ -1024,11 +1044,250 @@ namespace LudoHive
             this.ordemPasta = ordemPasta;
         }
     }
+    public class Jogos
+    {
+        public int id { get; set; }
+        public string nome { get; set; }
+        public BitmapImage icon { get; set; }
+        public string dataUltimaSessao { get; set; }
+        public string tempoUltimaSessao { get; set; }
+        public string dataPrimeiraSessao { get; set; }
+        public string tempoTodasSessoes { get; set; }
+        public int status { get; set; }
+        public Jogos()
+        {
+
+        }
+
+        public static void Salvar(Jogos jogoParaSalvamento)
+        {
+            try
+            {
+                int id = jogoParaSalvamento.id;
+                string nome = jogoParaSalvamento.nome;
+                byte[] imgEmBytes = Referencias.ConvertBitmapImageToByteArray(jogoParaSalvamento.icon);
+                string dataUltSessao = jogoParaSalvamento.dataUltimaSessao;
+                string tempoSessao = jogoParaSalvamento.tempoUltimaSessao;
+                string dataPrimSessao = jogoParaSalvamento.dataPrimeiraSessao;
+                string tempoSessoes = jogoParaSalvamento.tempoTodasSessoes;
+                int stats = jogoParaSalvamento.status;
+
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+
+                    string insertCommand = @"INSERT INTO Jogos (Id, Nome, Icon, DataUltimaSessao, TempoUltimaSessao, DataPrimeiraSessao, TempoTodasSessoes, Status) VALUES (@id, @nome, @icon, @datasessao, @temposessao, @dataprimsessao, @temposessoes, @stats);";
+                    using (var command = new SqliteCommand(insertCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", id);
+                        command.Parameters.AddWithValue("@nome", nome);
+                        command.Parameters.AddWithValue("@icon", imgEmBytes);
+                        command.Parameters.AddWithValue("@datasessao", dataUltSessao);
+                        command.Parameters.AddWithValue("@temposessao", tempoSessao);
+                        command.Parameters.AddWithValue("@dataprimsessao", dataPrimSessao);
+                        command.Parameters.AddWithValue("@temposessoes", tempoSessoes);
+                        command.Parameters.AddWithValue("@stats", stats);
+
+                        command.ExecuteScalar();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao adicionar o jogo: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        /*public static void Alterar(Atalhos atalhoParaAlteracao)
+        {
+            try
+            {
+                int idDeAlteracao = atalhoParaAlteracao.getIdAtalho();
+                string nome = atalhoParaAlteracao.getNomeAtalho();
+                string caminho = atalhoParaAlteracao.getCaminhoAtalho();
+                string parametro = atalhoParaAlteracao.getParametroAtalho();
+                byte[] imgEmBytes = Referencias.ConvertBitmapImageToByteArray(atalhoParaAlteracao.getImgAtalho());
+                byte[] icnEmBytes = Referencias.ConvertBitmapImageToByteArray(atalhoParaAlteracao.getIconeAtalho());
+
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+
+                    string condicaoCommand = " WHERE id = @id";
+                    string insertCommand = "UPDATE AtalhosdeAplicativos SET Nome = @nome, Caminho = @caminho, Parametro = @parametro";
+
+                    if (icnEmBytes.Length != 0) { condicaoCommand = ", Icon = @icn" + condicaoCommand; }
+                    if (imgEmBytes.Length != 0) { condicaoCommand = ", Imagem = @img" + condicaoCommand; }
+
+                    insertCommand = insertCommand + condicaoCommand;
+
+                    using (var command = new SqliteCommand(insertCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@nome", nome);
+                        command.Parameters.AddWithValue("@caminho", caminho);
+                        command.Parameters.AddWithValue("@parametro", parametro);
+                        if (icnEmBytes.Length != 0) { command.Parameters.AddWithValue("@icn", icnEmBytes); }
+                        if (imgEmBytes.Length != 0) { command.Parameters.AddWithValue("@img", imgEmBytes); }
+                        command.Parameters.AddWithValue("@id", idDeAlteracao);
+
+                        command.ExecuteNonQuery();
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao alterar o atalho: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }*/
+        public static void Deletar(int idDeExclusao)
+        {
+            try
+            {
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+                    string deleteCommand = "DELETE FROM Jogos WHERE id = @id";
+
+                    using (var command = new SqliteCommand(deleteCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", idDeExclusao);
+
+                        command.ExecuteNonQuery();
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao excluir o jogo: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        public static List<Jogos> ConsultarJogos()
+        {
+            List<Jogos> jgs = new List<Jogos>();
+            try
+            {
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+                    string selectCommand = $@"SELECT Id, Nome, Icon, DataUltimaSessao, TempoUltimaSessao, DataPrimeiraSessao, TempoTodasSessoes, Status FROM Jogos";
+
+                    using (var command = new SqliteCommand(selectCommand, connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                Jogos jg = new Jogos();
+                                jg.id = reader.GetInt32(0);
+                                jg.nome = reader.GetString(1);
+
+                                long tamanhoBlobIcon = reader.GetBytes(2, 0, null, 0, 0);
+
+                                byte[] bufferIcon = new byte[tamanhoBlobIcon];
+                                reader.GetBytes(2, 0, bufferIcon, 0, (int)tamanhoBlobIcon);
+
+                                using (MemoryStream ms = new MemoryStream(bufferIcon))
+                                {
+                                    jg.icon = Referencias.memoryStreamToBitmap(ms);
+                                }
+
+                                jg.dataUltimaSessao = reader.GetString(3);
+                                jg.tempoUltimaSessao = reader.GetString(4);
+                                jg.dataPrimeiraSessao = reader.GetString(5);
+                                jg.tempoTodasSessoes = reader.GetString(6);
+                                jg.status = reader.GetInt32(7);
+
+                                jgs.Add(jg);
+                            }
+                        }
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao listar jogos: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            return jgs;
+        }
+        public static void SessaoIniciada(string dataInicio, int idatual)
+        {
+            try
+            {
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+
+                    string updateCommand = "UPDATE Jogos SET DataUltimaSessao = @dataSessao WHERE Id = @id";
+                    using (var command = new SqliteCommand(updateCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@dataSessao", dataInicio);
+                        command.Parameters.AddWithValue("@id", idatual);
+                        command.ExecuteNonQuery();
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao mudar data da sessao: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        public static void SessaoFinalizada(string duracaoSessao, string todasSessoes, int idatual)
+        {
+            try
+            {
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+
+                    string updateCommand = "UPDATE Jogos SET TempoUltimaSessao = @tempoSessao, TempoTodasSessoes = @tempoSessoes WHERE Id = @id";
+                    using (var command = new SqliteCommand(updateCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@tempoSessao", duracaoSessao);
+                        command.Parameters.AddWithValue("@tempoSessoes", todasSessoes);
+                        command.Parameters.AddWithValue("@id", idatual);
+                        command.ExecuteNonQuery();
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao mudar duracao da sessao: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        public static void AlterarStatus(int status, int idatual)
+        {
+            try
+            {
+                using (var connection = Referencias.CreateConnection(Referencias.connectionString))
+                {
+                    connection.Open();
+
+                    string updateCommand = "UPDATE Jogos SET Status = @stst WHERE Id = @id";
+                    using (var command = new SqliteCommand(updateCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@stst", status);
+                        command.Parameters.AddWithValue("@id", idatual);
+                        command.ExecuteNonQuery();
+                    }
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erro ao mudar duracao da sessao: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
 
     public class Referencias
     {
         public static string connectionString = $"Data Source={Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "applicationsShortcuts.db")}";
         public static Uri imgPrincipal = new Uri("pack://application:,,,/LudoHive;component/Assets/Morgan.jpg", UriKind.Absolute);
+        public static Uri ludoIcon = new Uri("pack://application:,,,/LudoHive;component/Assets/LudoHive_Logo.png", UriKind.Absolute);
         public static Uri controlOn = new Uri("pack://application:,,,/LudoHive;component/Assets/ControlON.png", UriKind.Absolute);
         public static Uri picAppsHide = new Uri("pack://application:,,,/LudoHive;component/Assets/PicAppsHide.png", UriKind.Absolute);
         public static Uri picAppsShow = new Uri("pack://application:,,,/LudoHive;component/Assets/PicAppsShow.png", UriKind.Absolute);
@@ -1036,6 +1295,11 @@ namespace LudoHive
         public static Uri deletar = new Uri("pack://application:,,,/LudoHive;component/Assets/Deletar.png", UriKind.Absolute);
         public static Uri expandir = new Uri("pack://application:,,,/LudoHive;component/Assets/Expandir.png", UriKind.Absolute);
         public static Uri editar = new Uri("pack://application:,,,/LudoHive;component/Assets/Editar.png", UriKind.Absolute);
+
+        public static Uri abandonado = new Uri("pack://application:,,,/LudoHive;component/Assets/Abandonado.png", UriKind.Absolute);
+        public static Uri andamento = new Uri("pack://application:,,,/LudoHive;component/Assets/Em Andamento.png", UriKind.Absolute);
+        public static Uri gameService = new Uri("pack://application:,,,/LudoHive;component/Assets/Game Service.png", UriKind.Absolute);
+        public static Uri finalizado = new Uri("pack://application:,,,/LudoHive;component/Assets/Finalizado.png", UriKind.Absolute);
         public Referencias()
         {
 
@@ -1089,6 +1353,54 @@ namespace LudoHive
             }
 
             return connection;
+        }
+        public static void CriarClip(UIElement elemento, double height, double width, double arqueamento, bool arrLT = true, bool arrRT = true, bool arrRB = true, bool arrLB = true)
+        {
+            if (arqueamento > height / 2 || arqueamento == 0)
+            {
+                arqueamento = height / 2;
+            }
+            double distancia = arqueamento / 2;
+            double primeiraMetadeWidth = arqueamento;
+            double segundaMetadeWidth = width - arqueamento;
+            double primeiraMetadeHeight = arqueamento;
+            double segundaMetadeHeight = height - arqueamento;
+
+            PathGeometry pathGeometry = new PathGeometry();
+            PathFigure pathFigure = new PathFigure();
+            pathFigure.StartPoint = new Point(primeiraMetadeWidth, 0);
+
+            pathFigure.Segments.Add(new LineSegment(new Point(segundaMetadeWidth, 0), true));
+
+            if (arrRT)
+                pathFigure.Segments.Add(new BezierSegment(new Point(segundaMetadeWidth + distancia, 0), new Point(width, primeiraMetadeHeight - distancia), new Point(width, primeiraMetadeHeight), true));
+            else
+                pathFigure.Segments.Add(new BezierSegment(new Point(width, 0), new Point(width, 0), new Point(width, 0), true));
+
+            pathFigure.Segments.Add(new LineSegment(new Point(width, segundaMetadeHeight), true));
+
+            if (arrRB)
+                pathFigure.Segments.Add(new BezierSegment(new Point(width, segundaMetadeHeight + distancia), new Point(segundaMetadeWidth + distancia, height), new Point(segundaMetadeWidth, height), true));
+            else
+                pathFigure.Segments.Add(new BezierSegment(new Point(width, height), new Point(width, height), new Point(width, height), true));
+
+            pathFigure.Segments.Add(new LineSegment(new Point(primeiraMetadeWidth, height), true));
+
+            if (arrLB)
+                pathFigure.Segments.Add(new BezierSegment(new Point(primeiraMetadeWidth - distancia, height), new Point(0, segundaMetadeHeight + distancia), new Point(0, segundaMetadeHeight), true));
+            else
+                pathFigure.Segments.Add(new BezierSegment(new Point(0, height), new Point(0, height), new Point(0, height), true));
+
+            pathFigure.Segments.Add(new LineSegment(new Point(0, primeiraMetadeHeight), true));
+
+            if (arrLT)
+                pathFigure.Segments.Add(new BezierSegment(new Point(0, primeiraMetadeHeight - distancia), new Point(primeiraMetadeHeight - distancia, 0), new Point(primeiraMetadeWidth, 0), true));
+            else
+                pathFigure.Segments.Add(new BezierSegment(new Point(0, 0), new Point(0, 0), new Point(0, 0), true));
+
+            pathGeometry.Figures.Add(pathFigure);
+
+            elemento.Clip = pathGeometry;
         }
     }
     public class Controle{
@@ -1273,6 +1585,12 @@ namespace LudoHive
         private static extern IntPtr RegisterDeviceNotification(IntPtr hRecipient, IntPtr NotificationFilter, int Flags);
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern bool UnregisterDeviceNotification(IntPtr Handle);
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool AdjustWindowRectEx(ref RECT lpRect, uint dwStyle, bool bMenu, uint dwExStyle);
+
+        public const uint WS_OVERLAPPEDWINDOW = 0x00CF0000; // Estilo de janela padrão
+        public const uint WS_POPUP = 0x80000000;           // Estilo de janela sem bordas
+        public const uint WS_EX_TOOLWINDOW = 0x00000080;
 
         public const int SWP_NOZORDER = 0x0004;
         public const int SWP_NOACTIVATE = 0x0010;
@@ -1406,17 +1724,25 @@ namespace LudoHive
         public static void MoveToMonitor(int numMonitor, Window wd)
         {
             List<MonitorInfo> monitors = GetAllMonitors();
-            MonitorInfo monitor = default;
-
-            if (monitors.Count >= numMonitor)
-            {
-                numMonitor--; // Torna o número do monitor dentro dos índices da lista
-                monitor = monitors[numMonitor];
-            }
-            else
+            if (monitors.Count < numMonitor)
             {
                 return;
             }
+
+            MonitorInfo monitor = monitors[numMonitor - 1];
+
+            RECT rect = new RECT
+            {
+                left = monitor.MonitorArea.left,
+                top = monitor.MonitorArea.top,
+                right = monitor.MonitorArea.right,
+                bottom = monitor.MonitorArea.bottom
+            };
+
+            // Ajusta o tamanho da janela para incluir bordas e decorações
+            uint style = WS_POPUP; // Use WS_OVERLAPPEDWINDOW se a janela tiver bordas
+            uint exStyle = WS_EX_TOOLWINDOW; // Estilo estendido (opcional)
+            AdjustWindowRectEx(ref rect, style, false, exStyle);
 
             IntPtr windowHandle = new WindowInteropHelper(wd).Handle;
 
@@ -1451,6 +1777,22 @@ namespace LudoHive
             {
                 throw new Exception("Falha ao registrar notificações de dispositivo.");
             }
+        }
+    }
+    [TypeConverter(typeof(ExpandableObjectConverter))]
+    public class Elementos
+    {
+        public string Nome { get; set; } = string.Empty;
+        public int Id { get; set; } = 0;
+        public int Ordem { get; set; } = 0;
+        public BitmapImage Icone { get; set; } = null;
+        public Elementos()
+        {
+
+        }
+        public override string ToString()
+        {
+            return Nome;
         }
     }
 }

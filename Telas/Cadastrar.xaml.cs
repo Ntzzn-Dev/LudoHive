@@ -399,7 +399,7 @@ namespace LudoHive.Telas
         public void BtnProcurarImgLocal(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "Imagens (*.jpg;*.png;*.webp;*.jpeg)|*.jpg;*.png;*.webp;*.jpeg";
+            ofd.Filter = "Imagens (*.jpg;*.png;*.webp;*.ico;*.jpeg)|*.jpg;*.png;*.webp;*.ico;*.jpeg";
 
             if (sender == btnImgAtalhoLocal)
             {

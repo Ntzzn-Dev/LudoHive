@@ -10,11 +10,11 @@ none
 false
 TRACE;DEBUG;NET;NET8_0;NETCOREAPP
 H:\Projects\CSharp\LudoHive\LudoHive\App.xaml
-11392429723
+13-1013952900
 
-17737232060
+20924292542
 2071685988326
-MainWindow.xaml;TelaDeCola.xaml;Telas\Cadastrar.xaml;Telas\Configurar.xaml;Telas\Controles\ImgOnline.xaml;Telas\Controles\LabelCRUD.xaml;Telas\Controles\Ordenar.xaml;Telas\Controles\Popup.xaml;Telas\Controles\TextboxCustom.xaml;Telas\Controles\TitleBar.xaml;Telas\Controles\ToggleButton.xaml;
+MainWindow.xaml;TelaDeCola.xaml;Telas\Cadastrar.xaml;Telas\Configurar.xaml;Telas\Controles\ImgOnline.xaml;Telas\Controles\LabelCRUD.xaml;Telas\Controles\Ordenar.xaml;Telas\Controles\Popup.xaml;Telas\Controles\StateButton.xaml;Telas\Controles\Table.xaml;Telas\Controles\TextboxCustom.xaml;Telas\Controles\TitleBar.xaml;Telas\Controles\ToggleButton.xaml;
 
 False
 

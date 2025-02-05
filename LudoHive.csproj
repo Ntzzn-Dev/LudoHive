@@ -10,13 +10,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Assets\Abandonado.png" />
     <None Remove="Assets\BtnFechar.png" />
     <None Remove="Assets\BtnMaximizar.png" />
     <None Remove="Assets\BtnMinimizar.png" />
     <None Remove="Assets\ControlON.png" />
     <None Remove="Assets\Deletar.png" />
     <None Remove="Assets\Editar.png" />
+    <None Remove="Assets\Em Andamento.png" />
     <None Remove="Assets\Expandir.png" />
+    <None Remove="Assets\Finalizado.png" />
+    <None Remove="Assets\Game Service.png" />
     <None Remove="Assets\LudoHive_Icon.ico" />
     <None Remove="Assets\LudoHive_Logo.png" />
     <None Remove="Assets\Morgan.jpg" />
@@ -29,6 +33,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\Abandonado.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Assets\Em Andamento.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Assets\BtnFechar.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
@@ -47,6 +57,9 @@
     <Resource Include="Assets\Expandir.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Assets\Finalizado.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Assets\LudoHive_Icon.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
@@ -54,6 +67,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Assets\Morgan.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Assets\Game Service.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Assets\Vinheta.png">

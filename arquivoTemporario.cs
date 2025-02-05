@@ -1,5 +1,5 @@
 public class Inicio {
-    public Inicio(){
+    /*public Inicio(){
         MoveToMonitor(2);
     }
 
@@ -39,7 +39,7 @@ public class Inicio {
             hwnd, 
             IntPtr.Zero, 
             monitor.MonitorArea.left, 
-            monitor.MonitorArea.top
+            monitor.MonitorArea.top,
             monitor.MonitorArea.right - monitor.MonitorArea.left,
             monitor.MonitorArea.bottom - monitor.MonitorArea.top,
             NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVE);
@@ -86,5 +86,5 @@ public static class NativeMethods{
         public override string ToString(){
             return $"[Left = {left}, Top = {top}, Right = {right}, Bottom = {bottom}]";
         }
-    }
+    }*/
 }

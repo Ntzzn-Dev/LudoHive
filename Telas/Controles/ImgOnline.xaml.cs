@@ -1,21 +1,10 @@
 ﻿using SkiaSharp;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace LudoHive.Telas.Controles
 {
@@ -30,8 +19,8 @@ namespace LudoHive.Telas.Controles
         private bool _eIcone;
         private int _arredondado;
         private BitmapImage _imagem;
-        public Action Falha; 
-        public Action ImgCarregada; 
+        public Action Falha;
+        public Action ImgCarregada;
         public Color CorFundo
         {
             get => _corFundo;
@@ -79,13 +68,13 @@ namespace LudoHive.Telas.Controles
             set
             {
                 _arredondado = value;
-                CriarClip(img, img.ActualHeight, img.ActualWidth, Arredondado);
-                CriarClip(fundoImg, fundoImg.ActualHeight, fundoImg.ActualWidth, Arredondado);
+                Referencias.CriarClip(img, img.ActualHeight, img.ActualWidth, Arredondado);
+                Referencias.CriarClip(fundoImg, fundoImg.ActualHeight, fundoImg.ActualWidth, Arredondado);
             }
         }
         public ImageSource Imagem
         {
-            get => img.Source; 
+            get => img.Source;
             set
             {
                 img.Source = value;
@@ -103,8 +92,8 @@ namespace LudoHive.Telas.Controles
             Imagem = new BitmapImage(Referencias.imgPrincipal);
             img.SizeChanged += (s, e) =>
             {
-                CriarClip(img, img.ActualHeight, img.ActualWidth, Arredondado);
-                CriarClip(fundoImg, fundoImg.ActualHeight, fundoImg.ActualWidth, Arredondado);
+                Referencias.CriarClip(img, img.ActualHeight, img.ActualWidth, Arredondado);
+                Referencias.CriarClip(fundoImg, fundoImg.ActualHeight, fundoImg.ActualWidth, Arredondado);
             };
         }
         private async Task BaixarImgs(string pathToImg)
@@ -188,13 +177,22 @@ namespace LudoHive.Telas.Controles
                 }
                 else if (formato == "ICO")
                 {
-                    BitmapImage imagem = await BaixarEConverterIcoAsync(pathToImg);
-
-                    if (imagem != null)
+                    using (HttpClient client = new HttpClient())
                     {
-                        using (MemoryStream ms = new MemoryStream())
+                        byte[] bytesDaImg = await client.GetByteArrayAsync(pathToImg);
+
+                        using (MemoryStream ms = new MemoryStream(bytesDaImg))
                         {
-                            Imagem = Referencias.memoryStreamToBitmap(ms);
+                            BitmapImage imgCarregada = Referencias.memoryStreamToBitmap(ms);
+                            if (imgCarregada.Width != imgCarregada.Height && EIcone)
+                            {
+                                Falha?.Invoke();
+                                MessageBox.Show("a imagem deve ser quadrada");
+                            }
+                            else
+                            {
+                                Imagem = imgCarregada;
+                            }
                         }
                     }
                 }
@@ -205,7 +203,7 @@ namespace LudoHive.Telas.Controles
             catch (Exception ex)
             {
                 Falha?.Invoke();
-                //MessageBox.Show($"Erro ao baixar a imagem: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Erro ao baixar a imagem: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         private async Task<string> DetectarFormatoAsync(string url)
@@ -260,83 +258,6 @@ namespace LudoHive.Telas.Controles
                     }
                 }
             }
-        }
-        private async Task<BitmapImage> BaixarEConverterIcoAsync(string url)
-        {
-            using (HttpClient client = new HttpClient())
-            {
-                byte[] icoBytes = await client.GetByteArrayAsync(url);
-
-                using (var ms = new MemoryStream(icoBytes))
-                {
-                    SKBitmap bitmap = SKBitmap.Decode(ms);
-                    if (bitmap == null)
-                        throw new Exception("Não foi possível decodificar a imagem como um ícone válido.");
-
-                    using (MemoryStream pngStream = new MemoryStream())
-                    {
-                        bitmap.Encode(pngStream, SKEncodedImageFormat.Png, 100);
-                        pngStream.Seek(0, SeekOrigin.Begin);
-
-                        BitmapImage imgCarregada = new BitmapImage();
-                        imgCarregada.BeginInit();
-                        imgCarregada.CacheOption = BitmapCacheOption.OnLoad;
-                        imgCarregada.StreamSource = pngStream;
-                        imgCarregada.EndInit();
-                        imgCarregada.Freeze();
-
-                        return imgCarregada;
-                    }
-                }
-            }
-        }
-        private void CriarClip(UIElement elemento, double height, double width, double arqueamento, bool arrLT = true, bool arrRT = true, bool arrRB = true, bool arrLB = true)
-        {
-            if (arqueamento > height / 2 || arqueamento == 0)
-            {
-                arqueamento = height / 2;
-            }
-            double distancia = arqueamento / 2;
-            double primeiraMetadeWidth = arqueamento;
-            double segundaMetadeWidth = width - arqueamento;
-            double primeiraMetadeHeight = arqueamento;
-            double segundaMetadeHeight = height - arqueamento;
-
-            PathGeometry pathGeometry = new PathGeometry();
-            PathFigure pathFigure = new PathFigure();
-            pathFigure.StartPoint = new Point(primeiraMetadeWidth, 0);
-
-            pathFigure.Segments.Add(new LineSegment(new Point(segundaMetadeWidth, 0), true));
-
-            if (arrRT)
-                pathFigure.Segments.Add(new BezierSegment(new Point(segundaMetadeWidth + distancia, 0), new Point(width, primeiraMetadeHeight - distancia), new Point(width, primeiraMetadeHeight), true));
-            else
-                pathFigure.Segments.Add(new BezierSegment(new Point(width, 0), new Point(width, 0), new Point(width, 0), true));
-
-            pathFigure.Segments.Add(new LineSegment(new Point(width, segundaMetadeHeight), true));
-
-            if (arrRB)
-                pathFigure.Segments.Add(new BezierSegment(new Point(width, segundaMetadeHeight + distancia), new Point(segundaMetadeWidth + distancia, height), new Point(segundaMetadeWidth, height), true));
-            else
-                pathFigure.Segments.Add(new BezierSegment(new Point(width, height), new Point(width, height), new Point(width, height), true));
-
-            pathFigure.Segments.Add(new LineSegment(new Point(primeiraMetadeWidth, height), true));
-
-            if (arrLB)
-                pathFigure.Segments.Add(new BezierSegment(new Point(primeiraMetadeWidth - distancia, height), new Point(0, segundaMetadeHeight + distancia), new Point(0, segundaMetadeHeight), true));
-            else
-                pathFigure.Segments.Add(new BezierSegment(new Point(0, height), new Point(0, height), new Point(0, height), true));
-
-            pathFigure.Segments.Add(new LineSegment(new Point(0, primeiraMetadeHeight), true));
-
-            if (arrLT)
-                pathFigure.Segments.Add(new BezierSegment(new Point(0, primeiraMetadeHeight - distancia), new Point(primeiraMetadeHeight - distancia, 0), new Point(primeiraMetadeWidth, 0), true));
-            else
-                pathFigure.Segments.Add(new BezierSegment(new Point(0, 0), new Point(0, 0), new Point(0, 0), true));
-
-            pathGeometry.Figures.Add(pathFigure);
-
-            elemento.Clip = pathGeometry;
         }
     }
 }

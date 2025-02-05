@@ -16,6 +16,7 @@ using System.Windows.Media.Animation;
 using LudoHive.Telas.Controles;
 using LudoHive.Telas;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace LudoHive;
     /// <summary>
@@ -367,8 +368,11 @@ public partial class MainWindow : Window
         Cadastrar cad = new Cadastrar(id, pastaAtual, 1)
         {
             HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center,
+            Name = "cadastro"
         };
+
+        mainGrid.RegisterName(cad.Name, cad);
 
         cad.appCadastrado += (s, e) => PegarApps();
         cad.FimCadastro += VoltarPrograma;
@@ -527,6 +531,7 @@ public partial class MainWindow : Window
         config.AtalhoAdicionado += CarregarAtalhosPastas; 
         config.PastaRenomeada += CarregarAtalhosPastas;
         config.FimConfiguracao += VoltarPrograma;
+        config.MonitorAlterado += TrocarMonitor;
 
         mainGrid.RegisterName(config.Name, config);
 
@@ -534,6 +539,13 @@ public partial class MainWindow : Window
         Panel.SetZIndex(config, 10);
 
         PararPrograma();
+    }
+    private void TrocarMonitor(int idMonitor)
+    {
+        PicTransitionsCriar();
+        NativeMethods.MoveToMonitor(idMonitor, this);
+        Properties.Settings.Default.MonitorEmUso = idMonitor;
+        Properties.Settings.Default.Save();
     }
     private void CarregarAtalhosPastas()
     {
@@ -553,11 +565,14 @@ public partial class MainWindow : Window
         Cadastrar cadEdicao = new Cadastrar(idAtual, pastaAtual, 0)
         {
             HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center,
+            Name = "cadastro"
         };
 
         cadEdicao.atalhoCadastrado += (s, e) => AtalhoPegarIds();
         cadEdicao.FimCadastro += VoltarPrograma;
+
+        mainGrid.RegisterName(cadEdicao.Name, cadEdicao);
 
         mainGrid.Children.Add(cadEdicao);
         Panel.SetZIndex(cadEdicao, 10);
@@ -618,14 +633,12 @@ public partial class MainWindow : Window
     private void VerificacaoProcessoEstabilizado(object sender, ElapsedEventArgs e)
     {
         var processosAtuais = Process.GetProcesses();
-
         foreach (var processo in processosAtuais)
         {
             try
             {
                 if (IgnorarProcesso(processo))
                     continue;
-
                 if (NativeMethods.IsFullscreenWithoutBorders(processo) || NativeMethods.HasBorder(processo))
                 {
                     if (jogoAberto != null)
@@ -781,7 +794,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            string[] processosIgnorados = { "dev", "riot", "notepad", "chrome", "firefox", "opera", "spotify", "edge", "steam", "textinput", "code", "xbox", "dwm", "taskmgr", "protected", "ludoh", "discord", "settings", "explorer", "svchost", "dllhost", "taskhost", "service", "application", "explorer", "window", "DS4" };
+            string[] processosIgnorados = { "devenv", "riot", "notepad", "chrome", "firefox", "opera", "spotify", "edge", "steam", "textinput", "code", "xbox", "dwm", "taskmgr", "protected", "ludoh", "discord", "settings", "explorer", "svchost", "dllhost", "taskhost", "service", "application", "explorer", "window", "DS4" };
 
             if (processosIgnorados.Any(nome => processo.ProcessName.ToLower().Contains(nome)))
                 return true;

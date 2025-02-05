@@ -1,18 +1,9 @@
 ﻿using Microsoft.Win32;
-using System;
-using System.Collections;
-using System.Diagnostics;
-using System.IO;
-using SkiaSharp;
-using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using LudoHive.Telas.Controles;
-using System.Runtime.InteropServices;
-using System.Windows.Interop;
 
 namespace LudoHive.Telas
 {
@@ -27,7 +18,8 @@ namespace LudoHive.Telas
         private int idPastaAtual;
         private int idPastaEdit;
         private List<int> idsAtalhosParaPasta = new List<int>();
-        public event Action OrdemAlterada; 
+        public event Action<int> MonitorAlterado; 
+        public event Action OrdemAlterada;
         public event Action AtalhoAdicionado;
         public event Action PastaRenomeada;
         public event Action FimConfiguracao;
@@ -48,6 +40,8 @@ namespace LudoHive.Telas
         // Configurações --------------------------------------------------------------------------
         private void DefinirGatilhos()
         {
+            this.Loaded += AoCarregar;
+
             txtbxNavegadorPadrao.TextoChanged += (s, e) => {
                 navegadorEmUso = txtbxNavegadorPadrao.Texto;
             };
@@ -60,8 +54,9 @@ namespace LudoHive.Telas
             };
 
             btnSalvarConfig.Click += (s, e) => SalvarConfiguracoes();
-            btnCancelarConfig.Click += (s, e) => FecharCadastro();
+            btnCancelarConfig.Click += (s, e) => FecharConfiguracoes();
             btnRedefinirConfig.Click += (s, e) => RedefinirConfiguracoes();
+            btnTabelaJogos.Click += (s, e) => MostrarTabela();
 
             ordAtalhosExibicao.ListarOrdem += BtnSalvarOrdAtalhos;
             ordAtalhosExibicao.ElementoClicado += SelecionarNovos;
@@ -71,7 +66,127 @@ namespace LudoHive.Telas
             ordPastas.EditElementoClicado += (id, ord, lbl) => { idPastaEdit = id; NomearPasta(false); }; //False = Editar, True = Criar
             btnAddPasta.Click += (s, e) => NomearPasta(true);
 
-            ordPastas.Loaded += (s,e) => ordPastas.Labels.Find(att => att.Id == idPastaAtual).CorBackGround = Color.FromArgb(255, 84, 84, 84); ;
+            ordPastas.Loaded += (s,e) => ordPastas.Labels.Find(att => att.Id == idPastaAtual).CorBackGround = Color.FromArgb(255, 84, 84, 84);
+
+            sttbtnMonitor.StateAlterado += (el) => MonitorAlterado?.Invoke(el.Id);
+        }
+        private void AoCarregar(object sender, EventArgs e)
+        {
+            sttbtnMonitor.EstadoAtual = Properties.Settings.Default.MonitorEmUso - 1;
+
+            List<MonitorInfo> monitores = NativeMethods.GetAllMonitors();
+            List<Elementos> els = new List<Elementos>();
+            for (int i = 0; i < monitores.Count; i++)
+            {
+                Elementos el = new Elementos
+                {
+                    Nome = "Monitor " + (i + 1),
+                    Id = i + 1,
+                    Icone = new BitmapImage(Referencias.ludoIcon)
+                };
+                els.Add(el);
+            }
+            sttbtnMonitor.Estados = els;
+        }
+        private void MostrarTabela()
+        {
+            double largura = 0;
+            double altura = 0;
+            Window janela = Window.GetWindow(this);
+            if (janela != null)
+            {
+                largura = janela.ActualWidth;
+                altura = janela.ActualHeight;
+            }
+
+            Table tabelada = new Table
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                CorCabecalhoTbl = Color.FromArgb(255, 31, 30, 30),
+                TamanhoTexto = 18,
+                WithDelete = false,
+                Name = "tblEveryGame",
+                TamanhoMax = new Point(largura /1.5, altura /1.5)
+            };
+
+            Button btn = new()
+            {
+                Content = "Fechar",
+                FontSize = 18,
+                Name = "btnFecharTabela",
+                Background = new SolidColorBrush(Color.FromArgb(255, 31, 30, 30)),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 120, 120, 120)),
+                Width = 100,
+                Height = 50,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+
+            Grid rec = new()
+            {
+                Name = "gdFechar",
+                Background = new SolidColorBrush( Color.FromArgb(255, 31, 30, 30)),
+                Height = 50
+            };
+
+            btn.Click += (s, e) =>
+            {
+                if (tabelada.Parent is Grid grid)
+                {
+                    grid.Children.Remove(tabelada);
+                    grid.Children.Remove(rec);
+                    grid.UnregisterName(tabelada.Name);
+                    grid.UnregisterName(rec.Name);
+                }
+            };
+
+            List<object> listaComComando = Jogos.ConsultarJogos().Select(obj => new
+            {
+                icone = obj.icon,
+                obj.nome,
+                obj.dataPrimeiraSessao,
+                obj.dataUltimaSessao,
+                stt_status = obj.id + "__" + obj.status + "__Em andamento__Abandonado__Finalizado__Game Service",
+                obj.tempoTodasSessoes,
+                obj.tempoUltimaSessao,
+            }).ToList<object>();
+
+            tabelada.ListaDeIcons = new() { new BitmapImage(Referencias.abandonado), new BitmapImage(Referencias.andamento), new BitmapImage(Referencias.finalizado), new BitmapImage(Referencias.gameService) };
+
+            tabelada.ListaDeItens = listaComComando;
+
+            tabelada.TabelaAlteradaViaStateBtn += (ele) => {
+                int status = 0;
+                if (ele.Nome.ToLower().Contains("em andamento"))
+                    status = 0;
+                if (ele.Nome.ToLower().Contains("abandonado"))
+                    status = 1;
+                if (ele.Nome.ToLower().Contains("finalizado"))
+                    status = 2;
+                if (ele.Nome.ToLower().Contains("game service"))
+                    status = 3;
+                Jogos.AlterarStatus(status, ele.Id);
+            };
+
+            tabelada.Loaded += (s, e) =>
+            {
+                rec.Margin = new Thickness(0, tabelada.ActualHeight + rec.ActualHeight, 0, 0);
+                rec.Width = (int)tabelada.ActualWidth;
+            };
+
+            rec.Children.Add(btn);
+            Panel.SetZIndex(tabelada, 99);
+            Panel.SetZIndex(rec, 98);
+
+            if (this.Parent is Grid gd) {
+                gd.RegisterName(tabelada.Name, tabelada);
+                gd.RegisterName(rec.Name, rec);
+
+                gd.Children.Add(tabelada);
+                gd.Children.Add(rec);
+            }
+
+            FecharConfiguracoes();
         }
         private void BtnSalvarOrdAtalhos(List<int> listaOrdem)
         {
@@ -267,7 +382,7 @@ namespace LudoHive.Telas
             Properties.Settings.Default.FecharNavegador = fecharNavegador;
             Properties.Settings.Default.Save();
 
-            FecharCadastro();
+            FecharConfiguracoes();
         }
         private void RedefinirConfiguracoes()
         {
@@ -276,7 +391,7 @@ namespace LudoHive.Telas
 
             CarregarConfigs();
         }
-        public void FecharCadastro()
+        public void FecharConfiguracoes()
         {
             if (this.Parent is Grid grid)
             {

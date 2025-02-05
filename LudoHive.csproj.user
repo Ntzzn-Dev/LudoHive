@@ -25,6 +25,12 @@
     <Compile Update="Telas\Controles\Popup.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Telas\Controles\StateButton.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Telas\Controles\Table.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Telas\Controles\TextboxCustom.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -58,6 +64,12 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Telas\Controles\Popup.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Telas\Controles\StateButton.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Telas\Controles\Table.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Telas\Controles\TextboxCustom.xaml">
