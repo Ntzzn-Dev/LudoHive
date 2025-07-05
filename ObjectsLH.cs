@@ -1560,6 +1560,10 @@ namespace LudoHive
 
     public static class NativeMethods
     {
+        [DllImport("InitPrg.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int initPrg(string caminho, string param);
+        [DllImport("InitPrg.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int abrirEpicLauncher(string url);
         [DllImport("user32.dll")]
         public static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
         [DllImport("user32.dll")]

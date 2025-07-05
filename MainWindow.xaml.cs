@@ -16,7 +16,6 @@ using System.Windows.Media.Animation;
 using LudoHive.Telas.Controles;
 using LudoHive.Telas;
 using System.Text.RegularExpressions;
-using System.Threading;
 
 namespace LudoHive;
     /// <summary>
@@ -530,8 +529,6 @@ public partial class MainWindow : Window
                 WorkingDirectory = diretorioTrabalho,
                 UseShellExecute = true
             };
-
-            Process.Start(psi);
         }
         catch (Exception ex)
         {
@@ -615,24 +612,9 @@ public partial class MainWindow : Window
                 {
                     abrindoOJogo = true;
                     string caminho = atalhoAtual.getCaminhoAtalho();
-                    string permissao = "runas";
                     string argumentacao = atalhoAtual.getParametroAtalho();
-                    string diretorioTrabalho = System.IO.Path.GetDirectoryName(caminho);
-                    if (caminho.Contains("steam:"))
-                    {
-                        permissao = "";
-                    }
-                    if (caminho.Contains("epicgames"))
-                    {
-                        argumentacao = caminho;
-                        caminho = GetEpicGames();
-                        diretorioTrabalho = System.IO.Path.GetDirectoryName(caminho);
-                        AbrirEpicGames(caminho, diretorioTrabalho, argumentacao, permissao);
-                    }
-                    else
-                    {
-                        AbrirAtalho(caminho, diretorioTrabalho, argumentacao, permissao);
-                    }
+
+                    AbrirAtalho(caminho, argumentacao);
                     PicGIFAbrindoJogo();
                 }
             }));
@@ -672,86 +654,40 @@ public partial class MainWindow : Window
 
         AtalhoPegarIds();
     }
-    private void AbrirAtalho(string caminho, string diretorioTrabalho, string argumentacao, string permissao)
+    private void AbrirAtalho(string caminho, string argumentacao)
     {
         try
         {
-            ProcessStartInfo psi = new ProcessStartInfo
+            int pid = -1;
+            if (caminho.Contains("epicgames") || caminho.Contains("steam"))
             {
-                FileName = caminho,
-                WorkingDirectory = diretorioTrabalho,
-                Arguments = argumentacao,
-                Verb = permissao,
-                UseShellExecute = true
-            };
-            jogoAberto = Process.Start(psi);
+                pid = NativeMethods.abrirEpicLauncher(caminho);
+            }
+            else 
+            { 
+                pid = NativeMethods.initPrg(caminho, argumentacao); 
+            }
 
-            string inicioSessao = DateTime.Now.ToString("dd/MM/yy - HH:mm");
-            Atalhos.SessaoIniciada(inicioSessao, idAtual);
-            this.Dispatcher.Invoke(new Action(() =>
+            if (pid > 0)
             {
-                lblDataSessao.Content = "Data: " + inicioSessao;
-            }));
+                jogoAberto = Process.GetProcessById(pid);
+            }
 
-            PararPrograma();
+             string inicioSessao = DateTime.Now.ToString("dd/MM/yy - HH:mm");
+             Atalhos.SessaoIniciada(inicioSessao, idAtual);
+             this.Dispatcher.Invoke(new Action(() =>
+             {
+                 lblDataSessao.Content = "Data: " + inicioSessao;
+             }));
 
-            MonitoramentoDeProcesos();
+             PararPrograma();
+
+             MonitoramentoDeProcesos();
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Erro ao abrir o atalho: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
         }
-    }
-    private void AbrirEpicGames(string caminho, string diretorioTrabalho, string argumentacao, string permissao)
-    {
-        this.Topmost = true;
-        Process.Start(caminho);
-
-        System.Timers.Timer temporizadorEpicAberta = new System.Timers.Timer(7000);
-        temporizadorEpicAberta.Elapsed += (s, e) =>
-        {
-            var processosAtuais = Process.GetProcesses();
-            Process epic = null;
-            foreach (var processo in processosAtuais)
-            {
-                if (processo.ProcessName.ToLower().Contains("epicgameslauncher"))
-                {
-                    epic = processo;
-                    break;
-                }
-            }
-            if (epic != null)
-            {
-                temporizadorEpicAberta.Enabled = false;
-                this.Topmost = false;
-                epic.CloseMainWindow();
-                AbrirAtalho(caminho, diretorioTrabalho, argumentacao, permissao);
-            }
-            else
-            {
-                MessageBox.Show("Epic Games Launcher não foi encontrado.");
-            }
-        };
-
-        temporizadorEpicAberta.Enabled = true;
-
-    }
-    private string GetEpicGames()
-    {
-        string registryKey = @"HKEY_CLASSES_ROOT\com.epicgames.launcher\shell\open\command";
-
-        string command = (string)Registry.GetValue(registryKey, null, string.Empty);
-
-        if (!string.IsNullOrEmpty(command))
-        {
-            string[] parts = command.Split(" %");
-
-            string commandToRun = parts[0].Trim();
-
-            return commandToRun;
-        }
-
-        return null;
     }
     private void AtalhoListar(int idatual)
     {
